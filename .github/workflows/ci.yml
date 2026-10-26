@@ -65,11 +65,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch JUCE 8.0.14
+        # Only for the native build below: the parity check renders the same
+        # note in both builds, so the test binary has to exist.
+        run: git clone --depth 1 --branch 8.0.14 https://github.com/juce-framework/JUCE.git vendor/JUCE
+
       - name: Fetch clap-juce-extensions
         run: |
           git clone https://github.com/dsp56300/clap-juce-extensions.git vendor/clap-juce-extensions
           git -C vendor/clap-juce-extensions checkout e1f67893cc409a40c1154fa2e78c97046da24ce0
           git -C vendor/clap-juce-extensions submodule update --init --recursive
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev \
+            libdbus-1-dev libfreetype-dev libx11-dev libxcomposite-dev \
+            libxcursor-dev libxdamage-dev libxext-dev libxfixes-dev \
+            libxi-dev libxinerama-dev libxrandr-dev libxss-dev \
+            mesa-common-dev xvfb
 
       - name: Build the WebAssembly plugin
         run: tools/build_wclap.sh
@@ -80,7 +95,7 @@ jobs:
           # render of the two builds.
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release -j3 --target Spiral303Tests
-          wclap/tools/check_wclap.sh
+          xvfb-run -a wclap/tools/check_wclap.sh
 
       - name: Upload the bundle
         uses: actions/upload-artifact@v4
