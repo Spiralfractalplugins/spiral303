@@ -11,7 +11,8 @@ build-release/
 .mypy_cache/
 skills-lock.json
 dist-macos/
-tools/__pycache__/
+__pycache__/
+
 
 tests/TestStability.cpp.bak
 tests/TestStability.cpp.bak2

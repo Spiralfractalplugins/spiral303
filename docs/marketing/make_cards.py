@@ -206,71 +206,73 @@ COPY = {
     "en": {
         "tagline": "ACID SYNTHESIZER & 303 SEQUENCER",
         "bullets": [
-            ("7 filter models", "classic 303 contour, diode and Moog ladders, "
+            ("8 filter models", "classic 303 contour, diode and Moog ladders, "
                                 "TPT SVF, Sallen-Key, one-pole, Vowel"),
             ("A filter that talks", "formant bank walks the voice through "
                                     "oo › oh › ah › ay › ee as you turn Cutoff"),
-            ("Spiral sequencer", "8/12/16/24/32 steps, 12 scales, tie / slide / "
+            ("Spiral sequencer", "4–32 steps, 12 scales, tie / slide / "
                                  "accent, 16-sector gate wheel"),
-            ("MIDI import", "drop a .mid — lowest line wins, your scale stays, "
-                            "tempo comes from the host clock"),
+            ("MIDI in and out", "drop a .mid — lowest line wins, your scale stays; "
+                                "export writes the pattern back as .mid"),
             ("4 UI skins", "flat dark, starship console, walnut, brushed metal — "
                            "the audio stays bit-identical"),
-            ("27 factory presets", "acid classics plus 10 psytrance lines, user "
-                                   "presets as plain JSON, drag & drop"),
+            ("102 factory presets", "acid, acid house and goa lines, user "
+                                    "presets as plain JSON, drag & drop"),
         ],
-        "chips": ["VST3", "AU", "STANDALONE", "macOS universal", "Windows", "Linux"],
-        "foot": "~0.2% of realtime CPU  ·  896 offline checks",
+        "chips": ["VST3", "AU", "CLAP", "LV2", "STANDALONE", "WCLAP",
+                  "macOS universal", "Windows", "Linux"],
+        "foot": "~0.2% of realtime CPU  ·  890 offline checks",
         "author": "by Spiralfractal",
     },
     "ru": {
         "tagline": "КИСЛОТНЫЙ СИНТЕЗАТОР И 303-СЕКВЕНСОР",
         "bullets": [
-            ("7 моделей фильтра", "классический контур 303, диодная и Moog-"
+            ("8 моделей фильтра", "классический контур 303, диодная и Moog-"
                                   "лестница, TPT SVF, Sallen-Key, однополюсник, Vowel"),
             ("Фильтр, который говорит", "банк формант ведёт голос по траектории "
                                         "у › о › а › э › и, ручка Cutoff = положение во рту"),
-            ("Секвенсор-спираль", "8/12/16/24/32 шага, 12 гамм, tie / slide / accent "
+            ("Секвенсор-спираль", "4–32 шага, 12 гамм, tie / slide / accent "
                                   "на ступени, gate-колесо на 16 секторов"),
-            ("Импорт MIDI", "бросьте .mid в окно: берётся самая низкая дорожка, строй "
-                            "остаётся ваш, темп — из часов хоста"),
+            ("MIDI туда и обратно", "бросьте .mid: берётся самая низкая дорожка, строй "
+                                    "остаётся ваш; экспорт пишет паттерн обратно"),
             ("4 скина интерфейса", "тёмный, пульт космического корабля, орех, "
                                    "шлифованный металл — звук бит-в-бит"),
-            ("27 фабричных пресетов", "известные acid-линии и 10 psytrance-паттернов, "
-                                      "свои пресеты — обычный JSON"),
+            ("102 фабричных пресета", "acid, acid house и goa-линии, свои пресеты — "
+                                      "обычный JSON"),
         ],
-        "chips": ["VST3", "AU", "STANDALONE", "macOS universal", "Windows", "Linux"],
-        "foot": "~0,2% реального времени по CPU  ·  896 офлайн-проверок",
+        "chips": ["VST3", "AU", "CLAP", "LV2", "STANDALONE", "WCLAP",
+                  "macOS universal", "Windows", "Linux"],
+        "foot": "~0,2% реального времени по CPU  ·  890 офлайн-проверок",
         "author": "автор Spiralfractal",
     },
 }
 
-VERSION = "v0.20.0"
+VERSION = "v0.37.0"
 
 # The 4:5 Instagram card carries four highlights instead of six — the caption
 # does the rest of the talking.
 SHORT = {
     "en": [
-        ("A filter that talks", "seven models — the classic 303 contour, diode and "
+        ("A filter that talks", "eight models — the classic 303 contour, diode and "
                                 "Moog ladders, TPT SVF, Sallen-Key, one-pole — plus a "
                                 "formant bank that walks the voice oo › oh › ah › ay › ee "
                                 "as you turn Cutoff"),
-        ("Spiral sequencer", "8/12/16/24/32 steps, 12 scales, tie / slide / accent per "
+        ("Spiral sequencer", "4–32 steps, 12 scales, tie / slide / accent per "
                              "step, 16-sector gate wheel"),
-        ("MIDI import", "drop a .mid into the window — the lowest line wins, your scale "
-                        "stays, tempo comes from the host clock"),
+        ("MIDI in and out", "drop a .mid into the window — the lowest line wins, your "
+                            "scale stays; export writes the pattern back as .mid"),
         ("4 UI skins", "flat dark, starship console, walnut, brushed metal — the audio "
                        "stays bit-identical across all four"),
     ],
     "ru": [
-        ("Фильтр, который говорит", "семь моделей: классический контур 303, диодная и "
+        ("Фильтр, который говорит", "восемь моделей: классический контур 303, диодная и "
                                     "Moog-лестница, TPT SVF, Sallen-Key, однополюсник — и "
                                     "банк формант, ведущий голос у › о › а › э › и от ручки "
                                     "Cutoff"),
-        ("Секвенсор-спираль", "8/12/16/24/32 шага, 12 гамм, tie / slide / accent на "
+        ("Секвенсор-спираль", "4–32 шага, 12 гамм, tie / slide / accent на "
                               "ступени, gate-колесо на 16 секторов"),
-        ("Импорт MIDI", "бросьте .mid в окно: берётся самая низкая дорожка, строй "
-                        "остаётся ваш, темп — из часов хоста"),
+        ("MIDI туда и обратно", "бросьте .mid в окно: берётся самая низкая дорожка, строй "
+                               "остаётся ваш; экспорт пишет паттерн обратно"),
         ("4 скина интерфейса", "тёмный, пульт космического корабля, орех, шлифованный "
                                "металл — звук бит-в-бит при любом из них"),
     ],
@@ -279,19 +281,19 @@ SHORT = {
 # The square card is a glance: six heads, one short line each.
 SQUARE = {
     "en": [
-        ("7 filter models", "303 contour, ladders, SVF, Sallen-Key, Vowel"),
+        ("8 filter models", "303 contour, ladders, SVF, Sallen-Key, Vowel"),
         ("A filter that talks", "formants walk oo › oh › ah › ay › ee"),
         ("Spiral sequencer", "up to 32 steps, 12 scales, gate wheel"),
         ("Tie · slide · accent", "the 303 articulation, per step"),
-        ("MIDI import", "drop a .mid, keep your scale"),
+        ("MIDI in and out", "drop a .mid, keep your scale"),
         ("4 UI skins", "the audio stays bit-identical"),
     ],
     "ru": [
-        ("7 моделей фильтра", "контур 303, лестницы, SVF, Sallen-Key, Vowel"),
+        ("8 моделей фильтра", "контур 303, лестницы, SVF, Sallen-Key, Vowel"),
         ("Фильтр, который говорит", "форманты идут у › о › а › э › и"),
         ("Секвенсор-спираль", "до 32 шагов, 12 гамм, gate-колесо"),
         ("Tie · slide · accent", "артикуляция 303 на каждом шаге"),
-        ("Импорт MIDI", "бросьте .mid — строй останется ваш"),
+        ("MIDI туда и обратно", "бросьте .mid — строй останется ваш"),
         ("4 скина интерфейса", "звук бит-в-бит при любом скине"),
     ],
 }
