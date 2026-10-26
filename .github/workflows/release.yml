@@ -26,6 +26,12 @@ jobs:
       - name: Fetch JUCE 8.0.14
         run: git clone --depth 1 --branch 8.0.14 https://github.com/juce-framework/JUCE.git vendor/JUCE
 
+      - name: Fetch clap-juce-extensions
+        run: |
+          git clone https://github.com/dsp56300/clap-juce-extensions.git vendor/clap-juce-extensions
+          git -C vendor/clap-juce-extensions checkout e1f67893cc409a40c1154fa2e78c97046da24ce0
+          git -C vendor/clap-juce-extensions submodule update --init --recursive
+
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -38,7 +44,7 @@ jobs:
             mesa-common-dev xvfb
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ runner.os == 'Windows' && '-G "Visual Studio 18 2026"' || '' }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release -j3
