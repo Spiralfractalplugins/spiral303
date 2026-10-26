@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Steppers",
+  "params": {
+    "Cutoff": 950,
+    "Wave": 0.5,
+    "Res": 0.84,
+    "EnvAmt": 0.68,
+    "Contour": 0.35,
+    "Accent": 0.8,
+    "Glide": 0.42,
+    "Drive": 0.4,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.08,
+    "BPM": 122,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:34:2:0,129,392,1,1,1,0,135,0,128,392,391,392,391,0,136",
+  "credit": "Acid bass loop 'HOUSE02_ACIDBASS03' (TEADAZE soundbank)"
+}

@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Acid Tracks",
+  "params": {
+    "Cutoff": 620,
+    "Wave": 0.5,
+    "Res": 0.88,
+    "EnvAmt": 0.8,
+    "Contour": 0.5,
+    "Accent": 0.8,
+    "Glide": 0.62,
+    "Drive": 0.2,
+    "DistMix": 0.55,
+    "Slope": 0,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.15,
+    "BPM": 121,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:48:2:640,1,1,1,391,1,1,640,1,1,1,389,1,1,1,0,640,1,1,386,1,1,640,1,1,1,391,1,1,645,1,1",
+  "credit": "after Phuture - Acid Tracks: the long glide question, fitted by ear"
+}

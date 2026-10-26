@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Goa Apatride",
+  "params": {
+    "Cutoff": 820,
+    "Wave": 0.5,
+    "Res": 0.88,
+    "EnvAmt": 0.9,
+    "Contour": 0.3,
+    "Accent": 0.9,
+    "Glide": 0.2,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 143,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:46:4:138,387,384,1,396,387,384,1,396,387,384,1,393,391,385,1",
+  "credit": "Pluck line from '071 AT Pluck - Apatride' (TEADAZE soundbank)",
+  "gate": "g1:CCCC:2"
+}

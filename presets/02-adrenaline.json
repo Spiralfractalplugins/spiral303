@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Adrenaline",
+  "params": {
+    "Cutoff": 640,
+    "Wave": 0.5,
+    "Res": 0.81,
+    "EnvAmt": 0.72,
+    "Contour": 0.3,
+    "Accent": 0.9,
+    "Glide": 0.2,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 132,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:48:0:640,641,1,640,641,1,640,641,1,640,651,1,643,650,645,649",
+  "credit": "NJoi - Adrenaline (pattern via acidtabs.com)"
+}

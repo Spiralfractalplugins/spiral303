@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Kraken",
+  "params": {
+    "Cutoff": 840,
+    "Wave": 0.5,
+    "Res": 0.93,
+    "EnvAmt": 0.92,
+    "Contour": 0.26,
+    "Accent": 0.85,
+    "Glide": 0.4,
+    "Drive": 0.42,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 132,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:48:4:135,1,899,1,390,1,386,1,901,1,385,1,388,1,384,0,128,1,1,1,1,0,128,0",
+  "credit": "Descending run from '010 AT Bass - Kraken' (TEADAZE soundbank)"
+}

@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Plutonium",
+  "params": {
+    "Cutoff": 620,
+    "Wave": 0.5,
+    "Res": 0.96,
+    "EnvAmt": 0.95,
+    "Contour": 0.18,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.78,
+    "DistMix": 1.0,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 143,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:59:4:647,0,644,0,640,0,647,0,644,907,896,0,647,908,898,0",
+  "credit": "Lead line from '056 AT Lead - Plutonium' (TEADAZE soundbank)"
+}

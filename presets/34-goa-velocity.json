@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Velocity",
+  "params": {
+    "Cutoff": 700,
+    "Wave": 0.5,
+    "Res": 0.96,
+    "EnvAmt": 0.95,
+    "Contour": 0.18,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.75,
+    "DistMix": 0.95,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 147,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0.02
+  },
+  "sequence": "v1:49:4:138,393,392,391,394,392,391,392,391,392,391,385,384,0,0,0",
+  "credit": "Phrase from 'velocity 147 bpm [d# minor]' by @iamsynthetic (TEADAZE soundbank)"
+}

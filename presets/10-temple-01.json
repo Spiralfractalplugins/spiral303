@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Temple 01",
+  "params": {
+    "Cutoff": 760,
+    "Wave": 0.5,
+    "Res": 0.85,
+    "EnvAmt": 0.74,
+    "Contour": 0.32,
+    "Accent": 0.75,
+    "Glide": 0.35,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:57:0:640,1,132,136,641,1,135,648,132,641,1,641,135,648,647,132",
+  "credit": "Artist Temple Of Hades - TB-303 Pattern 01 (acidtabs.com)"
+}

@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Goa Pulsar",
+  "params": {
+    "Cutoff": 720,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.95,
+    "Contour": 0.28,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 141,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:60:4:132,384,0,649,388,384,0,649,0,132,384,0,649,0,132,384",
+  "credit": "Bass figure from '030 AT Bass - Pulsar' (TEADAZE soundbank)",
+  "gate": "g1:F0F0:0"
+}

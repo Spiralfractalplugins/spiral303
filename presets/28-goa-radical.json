@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Radical",
+  "params": {
+    "Cutoff": 560,
+    "Wave": 0.5,
+    "Res": 0.92,
+    "EnvAmt": 1.0,
+    "Contour": 0.2,
+    "Accent": 1.0,
+    "Glide": 0.32,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.2,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 148,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:49:4:139,391,392,391,392,391,392,391,392,391,392,391,392,391,392,391",
+  "credit": "Rolling ostinato from 'radical 153 bpm [a# minor]' by @iamsynthetic (TEADAZE soundbank)"
+}

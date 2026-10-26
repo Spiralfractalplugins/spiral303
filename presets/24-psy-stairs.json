@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Stairs",
+  "params": {
+    "Cutoff": 540,
+    "Wave": 0.5,
+    "Res": 0.93,
+    "EnvAmt": 0.9,
+    "Contour": 0.35,
+    "Accent": 0.95,
+    "Glide": 0.35,
+    "Drive": 0.5,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.5,
+    "ClockDiv": 4,
+    "Swing": 0.06,
+    "BPM": 145,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 3,
+    "Attack": 0
+  },
+  "sequence": "v1:37:2:128,129,131,133,135,136,129,129,129,129,136,135,133,131,129,128",
+  "credit": "Night taxi acid stairs",
+  "gate": "g1:EEEE:0"
+}

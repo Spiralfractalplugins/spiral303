@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Walk Bass",
+  "params": {
+    "Cutoff": 380,
+    "Wave": 0.5,
+    "Res": 0.76,
+    "EnvAmt": 0.55,
+    "Contour": 0.5,
+    "Accent": 0.9,
+    "Glide": 0.35,
+    "Drive": 0.3,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.7,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 140,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.7,
+    "SatType": 5,
+    "Attack": 0.1
+  },
+  "sequence": "v1:28:0:128,0,0,128,131,0,133,0,135,0,0,135,133,0,131,0",
+  "credit": "Warm tape bass, slow attack",
+  "gate": "g1:5555:0"
+}

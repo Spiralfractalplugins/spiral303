@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Break 4 Love",
+  "params": {
+    "Cutoff": 1500,
+    "Wave": 0.5,
+    "Res": 0.7,
+    "EnvAmt": 0.64,
+    "Contour": 0.42,
+    "Accent": 0.8,
+    "Glide": 0.45,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.45,
+    "ClockDiv": 4,
+    "Swing": 0.09,
+    "BPM": 124,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:52:7:640,0,647,0,393,0,647,0,640,0,647,0,396,0,647,0,642,0,645,0,391,0,645,0,640,1,391,1,645,1,387,1",
+  "credit": "after Raze - Break 4 Love: the stabbing acid hook, fitted by ear"
+}

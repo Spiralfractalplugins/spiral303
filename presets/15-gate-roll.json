@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Gate Roll",
+  "params": {
+    "Cutoff": 700,
+    "Wave": 0.5,
+    "Res": 0.94,
+    "EnvAmt": 0.8,
+    "Contour": 0.25,
+    "Accent": 0.95,
+    "Glide": 0.3,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 1,
+    "GateDiv": 2,
+    "GateAtk": 0.6,
+    "GateRel": 4,
+    "Gain": 0,
+    "GateMix": 0.9,
+    "Attack": 0
+  },
+  "sequence": "v1:59:0:640,393,130,1,132,134,647,649,1,644,134,1,642,647,1,135",
+  "gate": "g1:2924:0",
+  "credit": "Acid 04 with a fast triple-time gate roll"
+}

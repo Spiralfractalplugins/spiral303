@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Fractal",
+  "params": {
+    "Cutoff": 900,
+    "Wave": 0.5,
+    "Res": 0.8,
+    "EnvAmt": 0.6,
+    "Contour": 0.25,
+    "Accent": 0.8,
+    "Glide": 0.15,
+    "Drive": 0.4,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.2,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 149,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 1,
+    "Attack": 0.0
+  },
+  "sequence": "v1:50:4:128,131,135,129,129,129,135,131,133,136,129,129,129,136,133,131",
+  "credit": "Fractal hi-speed open filter",
+  "gate": "g1:CC88:1"
+}

@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Groove 01",
+  "params": {
+    "Cutoff": 1150,
+    "Wave": 0.5,
+    "Res": 0.72,
+    "EnvAmt": 0.68,
+    "Contour": 0.42,
+    "Accent": 0.8,
+    "Glide": 0.45,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.08,
+    "BPM": 122,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:36:6:135,1,1,384,386,905,1,1,386,905,898,393,394,899,394,387",
+  "credit": "Acid bass loop 'ECLSH01_ACIDBASS01' (TEADAZE soundbank)"
+}

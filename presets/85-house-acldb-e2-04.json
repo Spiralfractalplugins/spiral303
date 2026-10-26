@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Deep 04",
+  "params": {
+    "Cutoff": 980,
+    "Wave": 0.5,
+    "Res": 0.82,
+    "EnvAmt": 0.68,
+    "Contour": 0.45,
+    "Accent": 0.8,
+    "Glide": 0.42,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.45,
+    "ClockDiv": 4,
+    "Swing": 0.08,
+    "BPM": 122,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:44:6:137,0,137,1,896,391,1,1,1,1,1,384,904,1,385,392",
+  "credit": "Acid bass loop 'ECLASH02_ACIDBASS04' (TEADAZE soundbank)"
+}

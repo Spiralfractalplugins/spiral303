@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Pyramid",
+  "params": {
+    "Cutoff": 720,
+    "Wave": 0.5,
+    "Res": 0.92,
+    "EnvAmt": 0.9,
+    "Contour": 0.28,
+    "Accent": 0.85,
+    "Glide": 0.28,
+    "Drive": 0.58,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 129,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:46:4:140,395,0,128,1,396,395,0,128,1,396,395,0,128,1,396",
+  "credit": "Bass figure from '009 AT Bass - Pyramid' (TEADAZE soundbank)"
+}

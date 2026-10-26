@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Goa Sahara",
+  "params": {
+    "Cutoff": 620,
+    "Wave": 0.5,
+    "Res": 0.94,
+    "EnvAmt": 0.98,
+    "Contour": 0.22,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.68,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 145,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 1,
+    "Attack": 0
+  },
+  "sequence": "v1:41:4:640,0,129,128,0,386,0,640,0,135,1,390,0,645,0,131,642,0,131,133,0,647,0,390,0,645,131,0,130,0,128,1",
+  "credit": "after Man At Work - Sahara: the desert phrase, fitted by ear",
+  "gate": "g1:CCCC:2"
+}

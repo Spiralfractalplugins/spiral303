@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Tech Acida 22",
+  "params": {
+    "Cutoff": 940,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.82,
+    "Contour": 0.32,
+    "Accent": 0.85,
+    "Glide": 0.28,
+    "Drive": 0.55,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 133,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:33:2:651,906,903,896,909,1,903,1,896,903,901,903,907,906,903,896",
+  "credit": "Loop from 'FADL_128_22_A' (Loopmasters Future Acid) (TEADAZE soundbank)",
+  "gate": "g1:AAAA:0"
+}

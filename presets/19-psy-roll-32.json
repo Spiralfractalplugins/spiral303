@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Roll 32",
+  "params": {
+    "Cutoff": 520,
+    "Wave": 0.5,
+    "Res": 0.88,
+    "EnvAmt": 0.9,
+    "Contour": 0.25,
+    "Accent": 0.9,
+    "Glide": 0.35,
+    "Drive": 0.5,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.5,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 144,
+    "GateOn": 1,
+    "GateDiv": 3,
+    "GateAtk": 2,
+    "GateRel": 8,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 5,
+    "Attack": 0
+  },
+  "sequence": "v1:40:1:128,0,128,130,128,0,133,130,128,0,128,131,135,131,133,130",
+  "credit": "Dark read lead, rolled on 32ths",
+  "gate": "g1:AAAA:0"
+}

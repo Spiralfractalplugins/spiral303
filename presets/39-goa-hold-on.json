@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Hold On",
+  "params": {
+    "Cutoff": 540,
+    "Wave": 0.5,
+    "Res": 0.95,
+    "EnvAmt": 1.0,
+    "Contour": 0.2,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.7,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 147,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:47:4:640,908,906,1,907,908,906,1,897,908,906,1,908,1,906,1",
+  "credit": "Phrase from 'hold on 147 bpm [c# minor]' by @iamsynthetic (TEADAZE soundbank)"
+}

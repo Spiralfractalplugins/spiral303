@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Acid 158",
+  "params": {
+    "Cutoff": 880,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.76,
+    "Contour": 0.38,
+    "Accent": 0.75,
+    "Glide": 0.3,
+    "Drive": 0.26,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:53:0:128,1,642,648,130,649,648,136,128,0,903,642,647,904,898,649",
+  "credit": "Acid Tabs 158 - TB-303 Pattern (acidtabs.com, CC BY-SA)"
+}

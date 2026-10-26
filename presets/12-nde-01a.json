@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "NDE 01",
+  "params": {
+    "Cutoff": 1050,
+    "Wave": 0.5,
+    "Res": 0.72,
+    "EnvAmt": 0.66,
+    "Contour": 0.48,
+    "Accent": 0.75,
+    "Glide": 0.3,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.1,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:49:0:640,0,390,137,139,388,1,649,0,640,649,384,640,1,128,0",
+  "credit": "Artist NDE - TB-303 Pattern 01a (acidtabs.com)"
+}

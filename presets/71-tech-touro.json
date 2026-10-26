@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Touro",
+  "params": {
+    "Cutoff": 1080,
+    "Wave": 0.5,
+    "Res": 0.86,
+    "EnvAmt": 0.8,
+    "Contour": 0.35,
+    "Accent": 0.85,
+    "Glide": 0.28,
+    "Drive": 0.42,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:41:2:128,1,391,0,135,0,139,0,141,0,139,0,135,0,137,0",
+  "credit": "Bass figure from '034 AT Bass - Touro' (TEADAZE soundbank)"
+}

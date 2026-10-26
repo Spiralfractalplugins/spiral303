@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Echo Shore",
+  "params": {
+    "Cutoff": 980,
+    "Wave": 0.5,
+    "Res": 0.77,
+    "EnvAmt": 0.7,
+    "Contour": 0.45,
+    "Accent": 0.75,
+    "Glide": 0.3,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.18,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:50:0:640,0,128,649,131,389,647,642,0,642,651,135,1,644,642,135",
+  "credit": "Artist Echo Shore - TB-303 Pattern 02 (acidtabs.com)"
+}

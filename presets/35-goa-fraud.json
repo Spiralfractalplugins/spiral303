@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Fraud",
+  "params": {
+    "Cutoff": 760,
+    "Wave": 0.5,
+    "Res": 0.92,
+    "EnvAmt": 0.88,
+    "Contour": 0.3,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.25,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 144,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:44:4:651,903,904,1,896,903,904,1,907,903,897,1,907,903,898,1",
+  "credit": "Phrase from 'fraud 144 bpm [c# minor]' by @iamsynthetic (TEADAZE soundbank)"
+}

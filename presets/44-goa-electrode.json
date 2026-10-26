@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Electrode",
+  "params": {
+    "Cutoff": 880,
+    "Wave": 0.5,
+    "Res": 0.88,
+    "EnvAmt": 0.9,
+    "Contour": 0.3,
+    "Accent": 1.0,
+    "Glide": 0.3,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 145,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:49:4:643,1,901,904,1,899,904,909,1,900,907,1,908,1,896,1",
+  "credit": "Lead line from '062 AT Lead - Electrode' (TEADAZE soundbank)"
+}

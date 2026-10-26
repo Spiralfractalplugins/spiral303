@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Raining Columns",
+  "params": {
+    "Cutoff": 1000,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.9,
+    "Contour": 0.3,
+    "Accent": 0.85,
+    "Glide": 0.28,
+    "Drive": 0.42,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.2,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0.03
+  },
+  "sequence": "v1:40:2:640,1,128,1,386,1,130,1,643,1,131,1,389,1,133,1,647,1,135,1,389,1,133,1,643,1,131,1,386,1,130,1",
+  "credit": "after Agoria - Raining Columns: the slow climb and fall, fitted by ear"
+}

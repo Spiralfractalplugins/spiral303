@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Corrosion",
+  "params": {
+    "Cutoff": 700,
+    "Wave": 0.5,
+    "Res": 0.92,
+    "EnvAmt": 0.9,
+    "Contour": 0.28,
+    "Accent": 0.85,
+    "Glide": 0.34,
+    "Drive": 0.42,
+    "DistMix": 0.85,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 129,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:40:4:128,899,0,128,386,390,395,390,384,1,0,131,0,0,134,1",
+  "credit": "Bass figure from '028 AT Bass - Corrosion' (TEADAZE soundbank)"
+}

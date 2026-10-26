@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Can You Feel It",
+  "params": {
+    "Cutoff": 1350,
+    "Wave": 0.5,
+    "Res": 0.72,
+    "EnvAmt": 0.66,
+    "Contour": 0.45,
+    "Accent": 0.85,
+    "Glide": 0.5,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.12,
+    "BPM": 123,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:45:6:640,1,391,1,1,128,642,1,393,1,1,130,645,1,647,1,649,1,391,1,645,1,387,1,130,1,384,1,0,0,0,0",
+  "credit": "after Mr Fingers - Can You Feel It: the reaching octave line, fitted by ear"
+}

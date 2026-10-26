@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Maddy",
+  "params": {
+    "Cutoff": 660,
+    "Wave": 0.5,
+    "Res": 0.93,
+    "EnvAmt": 0.95,
+    "Contour": 0.25,
+    "Accent": 1.0,
+    "Glide": 0.26,
+    "Drive": 0.58,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 147,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:37:4:641,1,908,905,906,1,903,905,1,1,908,905,896,1,906,905",
+  "credit": "Phrase from 'maddy 147 bpm [d# minor]' by @iamsynthetic (TEADAZE soundbank)"
+}

@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-and-package:
+    name: Build + package (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            test_bin: build/Spiral303Tests_artefacts/Release/Spiral303Tests
+          - name: Windows
+            os: windows-latest
+            test_bin: build/Spiral303Tests_artefacts/Release/Spiral303Tests.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch JUCE 8.0.14
+        run: git clone --depth 1 --branch 8.0.14 https://github.com/juce-framework/JUCE.git vendor/JUCE
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev \
+            libdbus-1-dev libfreetype-dev libx11-dev libxcomposite-dev \
+            libxcursor-dev libxdamage-dev libxext-dev libxfixes-dev \
+            libxi-dev libxinerama-dev libxrandr-dev libxss-dev \
+            mesa-common-dev xvfb
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ runner.os == 'Windows' && '-G "Visual Studio 18 2026"' || '' }}
+
+      - name: Build
+        run: cmake --build build --config Release -j3
+
+      - name: Run Spiral303 test suite
+        run: ${{ matrix.test_bin }}
+
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [ -z "$VERSION" ] && VERSION="0.9.1"
+          PKG="Spiral303-${VERSION}-macOS"
+          rm -rf "dist/$PKG"
+          mkdir -p "dist/$PKG"
+          cp -R build/Spiral303_artefacts/Release/VST3/Spiral303.vst3 "dist/$PKG/"
+          cp -R build/Spiral303_artefacts/Release/AU/Spiral303.component "dist/$PKG/"
+          cp -R build/Spiral303_artefacts/Release/LV2/Spiral303.lv2 "dist/$PKG/"
+          cp -R build/Spiral303_artefacts/Release/Standalone/Spiral303.app "dist/$PKG/"
+          cd dist
+          zip -r "$PKG.zip" "$PKG"
+
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $VERSION = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME.TrimStart('v') } else { "0.9.1" }
+          $PKG = "Spiral303-$VERSION-Windows"
+          if (Test-Path "dist/$PKG") { Remove-Item "dist/$PKG" -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path "dist/$PKG" | Out-Null
+          Copy-Item -Recurse "build/Spiral303_artefacts/Release/VST3/Spiral303.vst3" "dist/$PKG/"
+          Copy-Item -Recurse "build/Spiral303_artefacts/Release/LV2/Spiral303.lv2" "dist/$PKG/"
+          Copy-Item -Recurse "build/Spiral303_artefacts/Release/Standalone/Spiral303.exe" "dist/$PKG/"
+          Compress-Archive -Path "dist/$PKG" -DestinationPath "dist/$PKG.zip" -Force
+
+      - name: Upload release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-package
+          path: |
+            dist/*.zip
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: build-and-package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all packages
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.zip
+          generate_release_notes: true

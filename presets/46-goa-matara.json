@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Goa Matara",
+  "params": {
+    "Cutoff": 700,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.93,
+    "Contour": 0.3,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 142,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:39:4:640,1,905,907,0,0,138,0,652,0,140,0,647,906,905,0",
+  "credit": "Lead line from '058 AT Lead - Matara' (TEADAZE soundbank)",
+  "gate": "g1:CC88:1"
+}

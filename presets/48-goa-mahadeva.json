@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Mahadeva",
+  "params": {
+    "Cutoff": 760,
+    "Wave": 0.5,
+    "Res": 0.93,
+    "EnvAmt": 0.95,
+    "Contour": 0.22,
+    "Accent": 1.0,
+    "Glide": 0.24,
+    "Drive": 0.7,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 146,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:48:4:640,0,128,0,386,0,131,0,640,0,128,0,134,0,133,0,642,0,131,0,386,0,128,0,645,0,134,0,135,0,133,134",
+  "credit": "after Astral Projection - Mahadeva: the flat-second hook, fitted by ear"
+}

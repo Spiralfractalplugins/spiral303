@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Dub 02",
+  "params": {
+    "Cutoff": 1250,
+    "Wave": 0.5,
+    "Res": 0.74,
+    "EnvAmt": 0.68,
+    "Contour": 0.42,
+    "Accent": 0.8,
+    "Glide": 0.42,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.09,
+    "BPM": 125,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:46:7:641,389,897,1,901,897,0,641,896,395,900,0,648,900,1,1",
+  "credit": "Acid bass loop 'ECLSH03_ACIDBASS02' (TEADAZE soundbank)"
+}

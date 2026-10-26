@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Fan",
+  "params": {
+    "Cutoff": 750,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 1.0,
+    "Contour": 0.2,
+    "Accent": 0.9,
+    "Glide": 0.35,
+    "Drive": 0.65,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.5,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 148,
+    "GateOn": 1,
+    "GateDiv": 3,
+    "GateAtk": 2,
+    "GateRel": 6,
+    "Gain": 0,
+    "GateMix": 1.0,
+    "SatType": 9,
+    "Attack": 0
+  },
+  "sequence": "v1:45:3:128,128,131,131,135,135,129,129,135,135,131,131,133,133,130,130",
+  "credit": "Fan lead reeling on 3-step rolls",
+  "gate": "g1:8888:3"
+}

@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Superconductor",
+  "params": {
+    "Cutoff": 880,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.95,
+    "Contour": 0.26,
+    "Accent": 1.0,
+    "Glide": 0.35,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.25,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 148,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:50:4:640,135,640,135,640,135,393,0,647,0,133,0,647,0,137,0,645,0,135,642,0,640,135,640,135,389,0,647,1,1,0,0",
+  "credit": "after Transwave - Superconductor: the octave-hopping drive, fitted by ear"
+}

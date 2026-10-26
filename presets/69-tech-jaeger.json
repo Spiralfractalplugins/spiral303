@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Jaeger",
+  "params": {
+    "Cutoff": 1000,
+    "Wave": 0.5,
+    "Res": 0.88,
+    "EnvAmt": 0.86,
+    "Contour": 0.35,
+    "Accent": 0.85,
+    "Glide": 0.22,
+    "Drive": 0.42,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 135,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:51:2:128,391,395,391,0,0,128,0,128,391,0,140,391,0,128,0",
+  "credit": "Bass figure from '027 AT Bass - Jaeger' (TEADAZE soundbank)"
+}

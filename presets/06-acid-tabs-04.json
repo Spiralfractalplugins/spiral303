@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Acid 04",
+  "params": {
+    "Cutoff": 700,
+    "Wave": 0.5,
+    "Res": 0.94,
+    "EnvAmt": 0.8,
+    "Contour": 0.25,
+    "Accent": 0.95,
+    "Glide": 0.3,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.55,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:59:0:640,393,130,1,132,134,647,649,1,644,134,1,642,647,1,135",
+  "credit": "Acid Tabs 04 - TB-303 Pattern (acidtabs.com, CC BY-SA)"
+}

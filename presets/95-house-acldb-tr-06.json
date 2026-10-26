@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Trance 06",
+  "params": {
+    "Cutoff": 1200,
+    "Wave": 0.5,
+    "Res": 0.78,
+    "EnvAmt": 0.68,
+    "Contour": 0.42,
+    "Accent": 0.8,
+    "Glide": 0.45,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0.08,
+    "BPM": 123,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:46:6:0,648,897,904,899,903,899,906,899,1,1,903,896,903,896,1",
+  "credit": "Acid bass loop 'TRANCE01_ACIDBASS06' (TEADAZE soundbank)"
+}

@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Init",
+  "params": {
+    "Cutoff": 900,
+    "Wave": 0.5,
+    "Res": 0.62,
+    "EnvAmt": 0.55,
+    "Contour": 0.5,
+    "Accent": 0.75,
+    "Glide": 0.3,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:36:2:640,128,388,128,642,132,389,1,647,128,385,128,642,388,131,132",
+  "credit": "Spiral303 factory pattern - the classic acid starting point"
+}

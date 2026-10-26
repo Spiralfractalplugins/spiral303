@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Roll Deep",
+  "params": {
+    "Cutoff": 480,
+    "Wave": 0.5,
+    "Res": 0.86,
+    "EnvAmt": 0.75,
+    "Contour": 0.4,
+    "Accent": 0.9,
+    "Glide": 0.45,
+    "Drive": 0.35,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.6,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 142,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 6,
+    "Attack": 0
+  },
+  "sequence": "v1:33:5:128,0,128,131,135,0,135,133,131,0,131,135,129,135,133,131",
+  "credit": "Deep rolling acid base, Tape Warm body",
+  "gate": "g1:FFFF:0"
+}

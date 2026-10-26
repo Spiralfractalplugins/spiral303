@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Wrath",
+  "params": {
+    "Cutoff": 1600,
+    "Wave": 0.5,
+    "Res": 0.66,
+    "EnvAmt": 0.6,
+    "Contour": 0.75,
+    "Accent": 0.7,
+    "Glide": 0.55,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 0.7,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:36:0:640,129,644,128,129,131,128,134,1,129,132,128,128,1,128,129",
+  "credit": "Temple Of Hades - Wrath (pattern via acidtabs.com)"
+}

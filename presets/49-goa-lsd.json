@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Goa LSD",
+  "params": {
+    "Cutoff": 680,
+    "Wave": 0.5,
+    "Res": 0.95,
+    "EnvAmt": 1.0,
+    "Contour": 0.2,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.75,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 5,
+    "Swing": 0.04,
+    "BPM": 149,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:43:4:647,1,390,1,389,1,388,1,387,1,386,1,129,128,0,640",
+  "credit": "after Hallucinogen - LSD: the spiral descent, fitted by ear",
+  "gate": "g1:AAAA:0"
+}

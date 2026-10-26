@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Dynox",
+  "params": {
+    "Cutoff": 720,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.95,
+    "Contour": 0.3,
+    "Accent": 0.95,
+    "Glide": 0.2,
+    "Drive": 0.62,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 147,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:36:4:137,392,397,394,393,397,394,397,394,0,137,394,397,394,397,394",
+  "credit": "Phrase from 'dynox 147 bpm [c minor]' by @iamsynthetic (TEADAZE soundbank)"
+}

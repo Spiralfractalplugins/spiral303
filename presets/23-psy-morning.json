@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Morning",
+  "params": {
+    "Cutoff": 820,
+    "Wave": 0.5,
+    "Res": 0.65,
+    "EnvAmt": 0.4,
+    "Contour": 0.6,
+    "Accent": 0.5,
+    "Glide": 0.6,
+    "Drive": 0.25,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.65,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 138,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.6,
+    "SatType": 6,
+    "Attack": 0.45
+  },
+  "sequence": "v1:48:5:128,0,132,0,135,0,137,0,129,0,137,0,135,0,132,0",
+  "credit": "Morning haze pad-lead with a slow attack",
+  "gate": "g1:6666:1"
+}

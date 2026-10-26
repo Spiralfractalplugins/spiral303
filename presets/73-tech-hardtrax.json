@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Hardtrax",
+  "params": {
+    "Cutoff": 820,
+    "Wave": 0.5,
+    "Res": 0.95,
+    "EnvAmt": 0.95,
+    "Contour": 0.22,
+    "Accent": 0.85,
+    "Glide": 0.3,
+    "Drive": 0.62,
+    "DistMix": 0.95,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 138,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:45:2:640,128,128,1,389,0,640,128,645,0,392,1,640,128,391,1",
+  "credit": "after Hardfloor - Hardtrax Acida: the jackhammer motif, fitted by ear"
+}

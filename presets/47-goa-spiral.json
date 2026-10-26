@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Spiral",
+  "params": {
+    "Cutoff": 800,
+    "Wave": 0.5,
+    "Res": 0.92,
+    "EnvAmt": 0.95,
+    "Contour": 0.24,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.65,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 148,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:34:4:129,393,391,385,392,385,391,385,384,386,385,392,393,385,391,385",
+  "credit": "Goa sketch from the soundbank's own Spiralfractal folder (TEADAZE soundbank)"
+}

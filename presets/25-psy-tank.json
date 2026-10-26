@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Tank",
+  "params": {
+    "Cutoff": 460,
+    "Wave": 0.5,
+    "Res": 0.95,
+    "EnvAmt": 0.85,
+    "Contour": 0.45,
+    "Accent": 1.0,
+    "Glide": 0.35,
+    "Drive": 0.7,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.55,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 147,
+    "GateOn": 1,
+    "GateDiv": 1,
+    "GateAtk": 2,
+    "GateRel": 10,
+    "Gain": 0,
+    "GateMix": 1.0,
+    "SatType": 9,
+    "Attack": 0
+  },
+  "sequence": "v1:31:1:128,128,128,135,128,128,133,133,128,128,131,131,129,129,135,131",
+  "credit": "Tank full collapse, tape hot",
+  "gate": "g1:F8F8:2"
+}

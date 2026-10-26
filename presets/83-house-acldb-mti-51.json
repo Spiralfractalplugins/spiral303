@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House MTI 51",
+  "params": {
+    "Cutoff": 1100,
+    "Wave": 0.5,
+    "Res": 0.74,
+    "EnvAmt": 0.68,
+    "Contour": 0.42,
+    "Accent": 0.9,
+    "Glide": 0.42,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.08,
+    "BPM": 127,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:52:7:128,391,1,384,395,1,1,1,384,391,1,384,395,1,1,1",
+  "credit": "Acid riff 'MTI Acid 051' (MyLoops) (TEADAZE soundbank)"
+}

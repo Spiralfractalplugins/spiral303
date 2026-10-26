@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Dystopia",
+  "params": {
+    "Cutoff": 900,
+    "Wave": 0.5,
+    "Res": 0.95,
+    "EnvAmt": 0.95,
+    "Contour": 0.22,
+    "Accent": 1.0,
+    "Glide": 0.2,
+    "Drive": 0.72,
+    "DistMix": 1.0,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 144,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 1,
+    "Attack": 0
+  },
+  "sequence": "v1:44:4:135,392,899,391,392,899,391,392,899,391,392,899,896,391,394,896",
+  "credit": "Pluck line from '084 AT Pluck - Dystopia' (TEADAZE soundbank)"
+}

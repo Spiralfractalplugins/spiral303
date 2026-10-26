@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Greed",
+  "params": {
+    "Cutoff": 640,
+    "Wave": 0.5,
+    "Res": 0.93,
+    "EnvAmt": 0.95,
+    "Contour": 0.3,
+    "Accent": 1.0,
+    "Glide": 0.24,
+    "Drive": 0.55,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 144,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:33:4:642,907,902,907,394,395,390,395,394,395,390,395,896,1,1,1",
+  "credit": "Phrase from 'greed 144 bpm [c# minor]' by @iamsynthetic (TEADAZE soundbank)"
+}

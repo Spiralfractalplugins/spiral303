@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Voodoo Ray",
+  "params": {
+    "Cutoff": 1250,
+    "Wave": 0.5,
+    "Res": 0.74,
+    "EnvAmt": 0.68,
+    "Contour": 0.42,
+    "Accent": 0.85,
+    "Glide": 0.42,
+    "Drive": 0.22,
+    "DistMix": 0.5,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.06,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:52:0:0,0,640,0,649,137,0,645,0,133,645,0,645,899,899,899",
+  "credit": "A Guy Called Gerald - Voodoo Ray (pattern via acidtabs.com)"
+}

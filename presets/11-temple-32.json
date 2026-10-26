@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "Temple 32",
+  "params": {
+    "Cutoff": 1800,
+    "Wave": 0.5,
+    "Res": 0.58,
+    "EnvAmt": 0.52,
+    "Contour": 0.7,
+    "Accent": 0.75,
+    "Glide": 0.3,
+    "Drive": 0.15,
+    "DistMix": 0.5,
+    "Slope": 0.55,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "Attack": 0
+  },
+  "sequence": "v1:56:0:640,138,1,394,128,131,129,1,650,641,128,645,129,133,138,1",
+  "credit": "Artist Temple Of Hades - TB-303 Pattern 32 (acidtabs.com)"
+}

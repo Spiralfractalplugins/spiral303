@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "House Dub 03",
+  "params": {
+    "Cutoff": 1700,
+    "Wave": 0.5,
+    "Res": 0.64,
+    "EnvAmt": 0.68,
+    "Contour": 0.5,
+    "Accent": 0.8,
+    "Glide": 0.42,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.08,
+    "BPM": 121,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:46:1:640,395,900,1,904,900,1,1,897,389,897,1,901,897,1,1",
+  "credit": "Acid bass loop 'ECLSH03_ACIDBASS03' (TEADAZE soundbank)",
+  "gate": "g1:CCCC:2"
+}

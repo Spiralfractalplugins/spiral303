@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "House Groove 07",
+  "params": {
+    "Cutoff": 1300,
+    "Wave": 0.5,
+    "Res": 0.78,
+    "EnvAmt": 0.68,
+    "Contour": 0.42,
+    "Accent": 0.8,
+    "Glide": 0.42,
+    "Drive": 0.24,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.1,
+    "BPM": 124,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:60:2:128,395,391,900,395,391,384,395,391,900,395,391,384,900,395,391",
+  "credit": "Acid bass loop 'ECLSH01_ACIDBASS07' (TEADAZE soundbank)"
+}

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spiral303</title>
+<!-- The paths are relative on purpose: the host serves the page from the
+     plugin's own memory under a path of its own, and only a relative link
+     stays inside it. An absolute "/style.css" would go to the web server
+     instead of to the plugin. -->
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="ui"></canvas>
+<div id="fallback" hidden>
+  <p>This host cannot show the Spiral303 interface.</p>
+  <p>The plugin still works: the parameters are in the host's own window.</p>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

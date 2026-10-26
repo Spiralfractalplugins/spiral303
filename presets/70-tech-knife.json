@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Tech Knife",
+  "params": {
+    "Cutoff": 680,
+    "Wave": 0.5,
+    "Res": 0.94,
+    "EnvAmt": 0.82,
+    "Contour": 0.22,
+    "Accent": 0.85,
+    "Glide": 0.28,
+    "Drive": 0.62,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 131,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:48:4:128,0,138,0,128,1,394,1,897,1,908,1,906,1,896,1",
+  "credit": "Bass figure from '002 AT Bass - Knife' (TEADAZE soundbank)",
+  "gate": "g1:CCCC:4"
+}

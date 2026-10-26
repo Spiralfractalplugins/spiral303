@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Psy Wheel",
+  "params": {
+    "Cutoff": 620,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.85,
+    "Contour": 0.3,
+    "Accent": 1.0,
+    "Glide": 0.35,
+    "Drive": 0.55,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.45,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 145,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 1.0,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:36:2:128,128,129,128,137,128,136,128,133,133,131,128,128,131,129,128",
+  "credit": "Full-wheel open drive",
+  "gate": "g1:F0F0:1"
+}

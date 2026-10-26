@@ -1,0 +1,31 @@
+/* The Spiral303 interface in the browser.
+   The page is served from the plugin's own memory, so it cannot rely on
+   anything outside its own bundle. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0e1115;
+  overflow: hidden;
+  color: #c8d0dc;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#ui {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+  cursor: default;
+}
+
+#fallback {
+  padding: 2rem;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#fallback p {
+  margin: 0 0 0.6rem;
+}

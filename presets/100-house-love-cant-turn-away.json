@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "House Love Can't Turn Away",
+  "params": {
+    "Cutoff": 1150,
+    "Wave": 0.5,
+    "Res": 0.76,
+    "EnvAmt": 0.7,
+    "Contour": 0.4,
+    "Accent": 0.8,
+    "Glide": 0.4,
+    "Drive": 0.28,
+    "DistMix": 0.55,
+    "Slope": 1,
+    "Warmth": 0.4,
+    "ClockDiv": 4,
+    "Swing": 0.1,
+    "BPM": 126,
+    "GateOn": 1,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:40:2:640,128,1,647,1,389,1,643,1,640,1,1,642,1,643,645,647,1,645,1,387,1,642,1,640,1,391,1,133,1,131,1",
+  "credit": "after Farley Jackmaster Funk - Love Can't Turn Away, fitted by ear",
+  "gate": "g1:CC88:1"
+}

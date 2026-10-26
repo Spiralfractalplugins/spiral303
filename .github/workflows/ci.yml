@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build + tests (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            test_bin: build/Spiral303Tests_artefacts/Release/Spiral303Tests
+          - name: Windows
+            os: windows-latest
+            test_bin: build/Spiral303Tests_artefacts/Release/Spiral303Tests.exe
+          - name: Linux
+            os: ubuntu-latest
+            test_bin: build/Spiral303Tests_artefacts/Release/Spiral303Tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch JUCE 8.0.14
+        run: git clone --depth 1 --branch 8.0.14 https://github.com/juce-framework/JUCE.git vendor/JUCE
+
+      - name: Fetch clap-juce-extensions
+        run: |
+          git clone https://github.com/dsp56300/clap-juce-extensions.git vendor/clap-juce-extensions
+          git -C vendor/clap-juce-extensions checkout e1f67893cc409a40c1154fa2e78c97046da24ce0
+          git -C vendor/clap-juce-extensions submodule update --init --recursive
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev \
+            libdbus-1-dev libfreetype-dev libx11-dev libxcomposite-dev \
+            libxcursor-dev libxdamage-dev libxext-dev libxfixes-dev \
+            libxi-dev libxinerama-dev libxrandr-dev libxss-dev \
+            mesa-common-dev xvfb
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j3
+
+      - name: Run Spiral303 test suite
+        # The suite constructs an AlertWindow, whose Linux peer needs a display:
+        # headless runners segfault without a virtual one.
+        run: ${{ runner.os == 'Linux' && 'xvfb-run -a' || '' }} ${{ matrix.test_bin }}
+
+  wclap:
+    name: WebAssembly build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch clap-juce-extensions
+        run: |
+          git clone https://github.com/dsp56300/clap-juce-extensions.git vendor/clap-juce-extensions
+          git -C vendor/clap-juce-extensions checkout e1f67893cc409a40c1154fa2e78c97046da24ce0
+          git -C vendor/clap-juce-extensions submodule update --init --recursive
+
+      - name: Build the WebAssembly plugin
+        run: tools/build_wclap.sh
+
+      - name: Check the WebAssembly build
+        run: |
+          # The native build has to be there as well: the check compares the
+          # render of the two builds.
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j3 --target Spiral303Tests
+          wclap/tools/check_wclap.sh
+
+      - name: Upload the bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spiral303-wclap
+          path: dist/Spiral303-*-wclap.tar.gz

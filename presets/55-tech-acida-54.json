@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Acida 54",
+  "params": {
+    "Cutoff": 860,
+    "Wave": 0.5,
+    "Res": 0.9,
+    "EnvAmt": 0.9,
+    "Contour": 0.35,
+    "Accent": 0.85,
+    "Glide": 0.28,
+    "Drive": 0.48,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 130,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:42:4:128,393,903,896,1,391,390,391,396,904,903,908,391,897,903,896",
+  "credit": "Loop from 'FADL_128_54_F#' (Loopmasters Future Acid) (TEADAZE soundbank)"
+}

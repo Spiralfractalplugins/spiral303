@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Goa Realm",
+  "params": {
+    "Cutoff": 680,
+    "Wave": 0.5,
+    "Res": 0.92,
+    "EnvAmt": 0.95,
+    "Contour": 0.3,
+    "Accent": 1.0,
+    "Glide": 0.18,
+    "Drive": 0.6,
+    "DistMix": 0.9,
+    "Slope": 1,
+    "Warmth": 0.3,
+    "ClockDiv": 4,
+    "Swing": 0,
+    "BPM": 142,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 12,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:58:4:640,1,0,648,0,640,905,0,640,907,905,904,909,896,909,908",
+  "credit": "Pluck line from '069 AT Pluck - Realm' (TEADAZE soundbank)"
+}

@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "name": "Tech Shockwave",
+  "params": {
+    "Cutoff": 760,
+    "Wave": 0.5,
+    "Res": 0.94,
+    "EnvAmt": 0.95,
+    "Contour": 0.24,
+    "Accent": 0.85,
+    "Glide": 0.28,
+    "Drive": 0.6,
+    "DistMix": 0.75,
+    "Slope": 1,
+    "Warmth": 0.35,
+    "ClockDiv": 5,
+    "Swing": 0.03,
+    "BPM": 136,
+    "GateOn": 0,
+    "GateDiv": 0,
+    "GateAtk": 2,
+    "GateRel": 14,
+    "Gain": 0,
+    "GateMix": 0.85,
+    "SatType": 0,
+    "Attack": 0
+  },
+  "sequence": "v1:52:3:640,130,131,133,135,136,138,140,653,1,396,1,650,1,136,1,135,133,643,1,386,0,640,0,135,0,389,0,643,0,130,0",
+  "credit": "after dESIGN - Shockwave: the rising scale run, fitted by ear"
+}
