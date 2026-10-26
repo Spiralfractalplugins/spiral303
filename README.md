@@ -37,11 +37,12 @@ Prebuilt bundles are in the [**latest release**](https://github.com/Spiralfracta
 | ------- | -------- |
 | `Spiral303-<version>-macOS.zip` | VST3 + AU + LV2 + Standalone (universal `arm64;x86_64`) |
 | `Spiral303-<version>-Windows.zip` | VST3 + LV2 + Standalone |
-| `Spiral303-<version>-wclap-registry.tar.gz` | the WebAssembly build (see [WebAssembly](#webassembly-wclap)) |
 
 CLAP and the Linux packages are built from source — the release workflow ships
 macOS and Windows only, and the `.clap` needs `clap-juce-extensions` in
-`vendor/`. See [Building](docs/BUILDING.md).
+`vendor/`. The WebAssembly bundle is built with `tools/build_wclap.sh` and served
+from the [plinken shelf](https://plinken.org/shelf.json); see
+[WebAssembly](#webassembly-wclap). See [Building](docs/BUILDING.md) for the rest.
 
 ## Formats
 
