@@ -42,7 +42,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev \
-            libdbus-1-dev libfreetype-dev libx11-dev libxcomposite-dev \
+            libdbus-1-dev libfontconfig-dev libfreetype-dev libx11-dev \
+            libxcomposite-dev \
             libxcursor-dev libxdamage-dev libxext-dev libxfixes-dev \
             libxi-dev libxinerama-dev libxrandr-dev libxss-dev \
             mesa-common-dev xvfb
@@ -81,7 +82,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev \
-            libdbus-1-dev libfreetype-dev libx11-dev libxcomposite-dev \
+            libdbus-1-dev libfontconfig-dev libfreetype-dev libx11-dev \
+            libxcomposite-dev \
             libxcursor-dev libxdamage-dev libxext-dev libxfixes-dev \
             libxi-dev libxinerama-dev libxrandr-dev libxss-dev \
             mesa-common-dev xvfb
