@@ -23,6 +23,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 // ---------------------------------------------------------------- WASI shim --
 
@@ -959,11 +960,14 @@ async function main () {
     const checks = [];
     const check = (label, passed, detail) => checks.push ([label, passed, detail]);
 
+    // Looked up by the name the host shows, which is not the page's key:
+    // the page says BPM, Play and Res, the CLAP table says Tempo, Manual Play
+    // and Resonance.
     const sync = pluginInstance.paramByName ('Sync');
-    const bpm = pluginInstance.paramByName ('BPM');
-    const play = pluginInstance.paramByName ('Play');
+    const bpm = pluginInstance.paramByName ('Tempo');
+    const play = pluginInstance.paramByName ('Manual Play');
     const cutoff = pluginInstance.paramByName ('Cutoff');
-    const res = pluginInstance.paramByName ('Res');
+    const res = pluginInstance.paramByName ('Resonance');
     if (!sync || !bpm || !play || !cutoff || !res)
       throw new Error ('the plugin is missing a parameter the checks need');
 
@@ -1036,9 +1040,12 @@ async function main () {
            'running ' + stopped.running + ', step ' + stopped.step);
 
     // Sync = Manual: here the Play button and the BPM knob are the transport, and
-    // a host that plays does not overrule them.
+    // a host that plays does not overrule them. The settle is the voice that was
+    // still ringing out from the checks above: its release has a hold stage, so
+    // only the blocks after it may be looked at.
     pluginInstance.process (frames, [], [{ id: sync.id, value: 1 }, { id: play.id, value: 0 }]);
-    const manualStopped = run (24, { playing: true });
+    run (128, { playing: true });
+    const manualStopped = run (32, { playing: true });
     const manualStoppedMeter = meter ();
     check ('in Manual a playing host does not start it',
            manualStopped < 1e-5 && manualStoppedMeter.running === false,
@@ -1160,7 +1167,9 @@ async function main () {
   process.exit (ok ? 0 : 1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Windows turns the script path into `file://D:\...`, so compare file URLs,
+// which both platforms normalise the same way.
+if (process.argv[1] && import.meta.url === pathToFileURL (process.argv[1]).href) {
   main ().catch ((e) => {
     console.error (e);
     process.exit (1);

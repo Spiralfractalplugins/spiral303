@@ -104,7 +104,13 @@ if (module !== undefined && cleanModule !== undefined && cleanModule.bytes.lengt
 // -- deterministic bytes -----------------------------------------------------
 
 const again = resolve(dirname(archivePath), `.${name}.tar.gz.tmp`)
-execFileSync("python3", [resolve("tools/pack_wclap.py"), bundleDir, again], {stdio: "pipe"})
+// The interpreter is `python3` on unix and `python` on Windows, where the
+// Store's `python3` is a stub that only prints an advertisement.
+const python = ["python3", "python", "py"].find(name => {
+    try { execFileSync(name, ["--version"], {stdio: "ignore"}); return true } catch { return false }
+})
+if (python === undefined) {fail("no python interpreter to repack with")}
+else execFileSync(python, [resolve("tools/pack_wclap.py"), bundleDir, again], {stdio: "pipe"})
 const same = statSync(again).size === archive.length && readFileSync(again).equals(archive)
 rmSync(again)
 if (!same) {fail("packing the same bundle a second time gave different bytes")}

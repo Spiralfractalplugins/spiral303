@@ -2,8 +2,9 @@
 // The wasm dump is the real thing; this is for working on the page without a build.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = path.join (path.dirname (new URL (import.meta.url).pathname), '..', '..');
+const root = path.join (path.dirname (fileURLToPath (import.meta.url)), '..', '..');
 const table = fs.readFileSync (path.join (root, 'Source/wclap/ParamTable.cpp'), 'utf8');
 const cmake = fs.readFileSync (path.join (root, 'CMakeLists.txt'), 'utf8');
 const version = (cmake.match (/project\s*\(Spiral303 VERSION ([\d.]+)/i) || [, '0.0.0'])[1];

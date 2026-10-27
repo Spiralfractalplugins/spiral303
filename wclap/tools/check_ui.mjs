@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
 
 const [statePath, webDir] = process.argv.slice (2);
 if (!statePath) {
@@ -17,7 +18,7 @@ if (!statePath) {
   process.exit (2);
 }
 
-const root = webDir || path.join (path.dirname (new URL (import.meta.url).pathname), '..', '..', 'web');
+const root = webDir || path.join (path.dirname (fileURLToPath (import.meta.url)), '..', '..', 'web');
 const DESIGN = { w: 1180, h: 780 };
 
 // --- the recording canvas -----------------------------------------------------
