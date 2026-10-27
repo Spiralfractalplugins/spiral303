@@ -1132,11 +1132,6 @@ void PluginEditor::timerCallback()
                                : String::formatted ("%.1f BPM  host", bpm),
                         dontSendNotification);
     const auto& th = Skins::current();
-    // The readout stands in a window of its own, like the preset field beside
-    // it: the strip along the top of a cabinet is the one surface no skin's text
-    // colour is chosen against.
-    tempoLabel.setColour (Label::backgroundColourId, th.panel);
-    tempoLabel.setColour (Label::outlineColourId, th.panelOutline);
     tempoLabel.setColour (Label::textColourId, manual ? th.accentAlt : th.textDim);
 
     for (auto& k : knobs)
@@ -1268,7 +1263,7 @@ void PluginEditor::paint (Graphics& g)
     drawPanel (g, scaled ({ 12, 408, 860, 88 }), "SEQUENCER", uiScale);
     drawPanel (g, scaled ({ 12, 504, 1156, 268 }), {}, uiScale);
 
-    g.setColour (th.faceInk);
+    g.setColour (th.text);
     g.setFont (Theme::font (14.0f * uiScale, Font::bold));
     g.drawText (String ("Spiralfractal's Spiral303  v") + SPIRAL303_VERSION,
                 scaled ({ 156, 8, 284, 30 }), Justification::centredLeft);

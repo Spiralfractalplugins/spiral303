@@ -11,12 +11,8 @@
 class WrappedLabel : public juce::Component
 {
 public:
-    /** An unset colour follows the skin; a colour given here is kept as written.
-        `onFace` picks the ink the cabinet is printed with instead of the pocket
-        one: the credit column stands on the bare plate, and a walnut plate needs
-        the cream a silkscreen would use. */
-    explicit WrappedLabel (juce::Colour colour = {}, bool onFace = false)
-        : textColour (colour), faceInk (onFace) {}
+    /** An unset colour follows the skin; a colour given here is kept as written. */
+    explicit WrappedLabel (juce::Colour colour = {}) : textColour (colour) {}
 
     void setText (const juce::String& t) { text = t; repaint(); }
     const juce::String& getText() const { return text; }
@@ -30,7 +26,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         const auto& th = Skins::current();
-        g.setColour (textColour.getAlpha() == 0 ? (faceInk ? th.faceInk : th.textDim) : textColour);
+        g.setColour (textColour.getAlpha() == 0 ? th.textDim : textColour);
         g.setFont (Theme::font (9.0f * uiScale));
         g.drawMultiLineText (text, 1, static_cast<int> (11.0f * uiScale),
                              jmax (10, getWidth() - 2));
@@ -39,7 +35,6 @@ public:
 private:
     juce::String text;
     juce::Colour textColour;
-    bool faceInk = false;
     float uiScale = 1.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WrappedLabel)

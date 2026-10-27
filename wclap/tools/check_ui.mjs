@@ -57,11 +57,25 @@ const context2d = new Proxy ({}, {
 
 const listeners = {};
 const store = new Map ();
+// A material skin asks the page to build its grain on an offscreen canvas;
+// the recording context is the one under test, so an offscreen one stays
+// silent and nothing extra lands in shapes.
+const silentContext = new Proxy ({}, {
+  get (target, property) {
+    if (property === 'canvas') return { width: DESIGN.w, height: DESIGN.h };
+    if (property === 'createLinearGradient' || property === 'createRadialGradient')
+      return () => ({ addColorStop () {} });
+    if (property in target) return target[property];
+    return () => {};
+  },
+  set (target, property, value) { target[property] = value; return true; },
+});
 const element = (tag) => ({
   tag, style: {}, type: '', files: [], href: '', download: '',
   addEventListener: (name, fn) => { (listeners['element:' + tag + ':' + name] ||= []).push (fn); },
   appendChild: () => {}, click: () => { count ('element-click'); }, focus: () => {},
   select: () => {}, getBoundingClientRect: () => ({ left: 0, top: 0 }),
+  getContext: () => silentContext,
 });
 
 // A drag holds the pointer: with a real browser the canvas keeps getting the
@@ -333,6 +347,25 @@ check (manualRow !== undefined && Math.abs (manualRow.x - sync.rect.x) < 60,
 posted.length = 0;
 click (manualRow.x + 2, manualRow.y - 6);
 check (lastSent ('param')?.id === 'Sync', 'picking a choice writes the parameter');
+
+// The skin combo sits at the top of the header, and its list opens centred on
+// the row in play: while Metal is chosen the earlier skins would be carried
+// above the canvas, where no pointer reaches them.
+{
+  const skinCombo = L.combos.find ((c) => c.id === 'UiSkin');
+  setState ({ params: Object.assign ({}, state.params, { UiSkin: 3 }), skin: 3 });
+  shapes.length = 0;
+  click (skinCombo.rect.x + 4, skinCombo.rect.y + 4);
+  const darkRow = shapes.find ((s) => s.kind === 'fillText' && s.text === 'Dark');
+  check (darkRow !== undefined && darkRow.y > 0,
+         'the last skin still lists the first one where it can be clicked',
+         darkRow && darkRow.y.toFixed (1));
+  posted.length = 0;
+  click (darkRow.x + 2, darkRow.y - 6);
+  check (lastSent ('param')?.id === 'UiSkin' && lastSent ('param').v === 0,
+         'the previous skin is selectable', JSON.stringify (lastSent ('param')));
+  setState ({});
+}
 
 // A step menu from the right click on the grid.
 shapes.length = 0;

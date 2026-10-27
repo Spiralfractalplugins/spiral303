@@ -37,17 +37,6 @@ namespace KnobPaint
         return r;
     }
 
-    inline void shadow (juce::Graphics& g, const Palette& th, float cx, float cy, float r)
-    {
-        // Fake blur: two offset ellipses of decreasing size instead of a
-        // Gaussian, which would cost a second image per knob.
-        g.setColour (th.shadow.withAlpha (0.42f));
-        g.fillEllipse (cx - r + 1.5f, cy - r + 2.5f, r * 2.0f, r * 2.0f);
-        g.setColour (th.shadow.withAlpha (0.22f));
-        const float inner = r * 0.92f;
-        g.fillEllipse (cx - inner + 1.0f, cy - inner + 1.8f, inner * 2.0f, inner * 2.0f);
-    }
-
     /** Hex collar for the glowing finish: machined flats under the dome. */
     inline void collar (juce::Graphics& g, const Palette& th, float cx, float cy, float r)
     {
@@ -388,7 +377,7 @@ public:
             g.strokePath (arc, PathStrokeType (3.0f, PathStrokeType::curved, PathStrokeType::rounded));
         }
 
-        // Layer order for every material skin: shadow, washer or collar, dome,
+        // Layer order for every material skin: washer or collar, dome,
         // the rotated face and rim texture, bevel, specular, pointer. Dark takes
         // the flat path and skips straight to the dome it has always drawn.
         const bool material = th.knobFinish != KnobFinish::MoldedPlastic;
@@ -398,13 +387,6 @@ public:
 
         if (material)
         {
-            // A phenolic body sits on a nickel washer and a metal body in a
-            // hex collar, so the foot that casts the shadow is wider than the
-            // dome. Without that the washer swallows the contact shadow and
-            // the knob floats.
-            const float foot = th.knobFinish == KnobFinish::MoldedPlastic
-                                 ? bodyR : bodyR * 1.22f;
-            KnobPaint::shadow (g, th, cx, cy, foot);
             if (th.knobFinish == KnobFinish::Phenolic)
                 KnobPaint::washer (g, th, cx, cy, bodyR);
             else if (th.knobFinish == KnobFinish::Glowing)
@@ -415,7 +397,10 @@ public:
         if (detail)
         {
             KnobPaint::texture (g, th, cx, cy, bodyR, angle);
-            KnobPaint::bevel (g, th, cx, cy, bodyR);
+            // Console wears its dome plain: the half-circle bevel reads as two
+            // rings on the glass there, so it stays on the machined finishes.
+            if (th.knobFinish != KnobFinish::Glowing)
+                KnobPaint::bevel (g, th, cx, cy, bodyR);
             KnobPaint::spec (g, th, cx, cy, bodyR);
         }
         KnobPaint::pointer (g, th, cx, cy, bodyR, angle);
