@@ -46,11 +46,13 @@ echo "== the host's transport drives the clock, and the page's edits reach the h
 node wclap/tools/wclap-host.mjs "$MODULE" --host-half "$HOST_HALF" --transport | tail -2
 
 echo
-echo "== every extension offers all of its functions =="
+echo "== the extensions, the ports the host builds its buffers from, and the state =="
 # A host that reads a function pointer without checking it for null traps, and
 # the error it reports is a bare address in the module's memory (openDAW:
 # "null function pointer at 117660"). The check walks every extension.
-node wclap/tools/wclap-host.mjs "$MODULE" --host-half "$HOST_HALF" --api --state-out "$WORK/wasm_state.bin" | tail -4
+# Nothing is truncated here: the line that explains a failure is the one a tail
+# would cut.
+node wclap/tools/wclap-host.mjs "$MODULE" --host-half "$HOST_HALF" --api --state-out "$WORK/wasm_state.bin"
 
 echo
 echo "== the interface draws itself =="

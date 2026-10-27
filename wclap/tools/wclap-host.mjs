@@ -175,6 +175,7 @@ const CLAP_EVENT_NOTE_SIZE = 40;
 const CLAP_EVENT_PARAM_VALUE_SIZE = 48;
 const CLAP_EVENT_TRANSPORT_SIZE = 104;
 const CLAP_PARAM_INFO_SIZE = 1320;
+const CLAP_AUDIO_PORT_INFO_SIZE = 276;
 
 const CLAP_EVENT_NOTE_ON = 0;
 const CLAP_EVENT_NOTE_OFF = 1;
@@ -186,6 +187,8 @@ const CLAP_EVENT_TRANSPORT = 9;
 const CLAP_TRANSPORT_HAS_TEMPO = 1 << 0;
 const CLAP_TRANSPORT_HAS_BEATS_TIMELINE = 1 << 1;
 const CLAP_TRANSPORT_IS_PLAYING = 1 << 4;
+
+const CLAP_AUDIO_PORT_IS_MAIN = 1 << 0;
 
 // clap_beattime counts beats with 2^31 to the beat (clap/fixedpoint.h).
 const CLAP_BEATTIME_FACTOR = 2 ** 31;
@@ -749,6 +752,68 @@ export function extensionSlotsAreFilled (pluginInstance) {
   return problems;
 }
 
+/** The ports the plugin advertises, and whether the advertisement is the one the
+    DSP was written for.
+
+    A host builds its buffers from this answer alone: told the wrong channel
+    count it hands over a buffer of the wrong shape, and told about a second
+    output it routes half the mix nowhere. */
+export function audioPortsAreAdvertised (pluginInstance) {
+  const problems = [];
+  const m = pluginInstance.plugin;
+  const ports = [];
+
+  const ext = pluginInstance.extension ('clap.audio-ports');
+  if (!ext)
+    return { problems: ['clap.audio-ports: the plugin does not offer it'], ports };
+
+  // clap_audio_port_info_t, laid out for wasm32, where a pointer is four bytes:
+  // id 0, name 4, flags 260, channel_count 264, port_type 268, in_place_pair 272.
+  const read = (index, isInput) => {
+    const infoPtr = m.alloc (CLAP_AUDIO_PORT_INFO_SIZE);
+    if (!pluginInstance.callExt (ext, 4, pluginInstance.ptr, index, isInput ? 1 : 0, infoPtr))
+      return null;
+    return {
+      name: m.readFixedString (infoPtr + 4, 256),
+      flags: m.u32 (infoPtr + 260),
+      channelCount: m.u32 (infoPtr + 264),
+      portType: m.readString (m.u32 (infoPtr + 268)),
+    };
+  };
+
+  for (const [isInput, direction, channels, portType] of
+      [[false, 'output', 2, 'stereo'], [true, 'input', 1, 'mono']]) {
+    const count = pluginInstance.callExt (ext, 0, pluginInstance.ptr, isInput ? 1 : 0);
+    if (count !== 1) {
+      problems.push (`the ${direction} count is ${count}, the plugin has exactly one`);
+      continue;
+    }
+
+    const port = read (0, isInput);
+    if (!port) {
+      problems.push (`get (0, ${direction}) refused the port it just counted`);
+      continue;
+    }
+    const main = (port.flags & CLAP_AUDIO_PORT_IS_MAIN) !== 0;
+    ports.push ({ ...port, direction, main });
+
+    if (port.channelCount !== channels)
+      problems.push (`the ${direction} has ${port.channelCount} channel(s), expected ${channels}`);
+    if (port.portType !== portType)
+      problems.push (`the ${direction} is "${port.portType}", expected "${portType}"`);
+    if (!main)
+      problems.push (`the ${direction} does not say it is the main one`);
+    if (port.name === '')
+      problems.push (`the ${direction} has no name for the host to show`);
+
+    // The main port has to sit at index 0, and nothing may follow it.
+    if (read (1, isInput))
+      problems.push (`get (1, ${direction}) answered although the count is one`);
+  }
+
+  return { problems, ports };
+}
+
 async function main () {
   const args = process.argv.slice (2);
   const wasmPath = args[0];
@@ -870,6 +935,17 @@ async function main () {
       ? 'every extension offers all of its functions'
       : problems.length + ' extension slot(s) are empty');
 
+    // The ports: what the host builds its buffers from.
+    const declared = audioPortsAreAdvertised (pluginInstance);
+    for (const port of declared.ports)
+      console.log (`  ${port.direction}: ${port.name ? '"' + port.name + '"' : '(unnamed)'}`,
+        port.channelCount, 'channel(s)', port.portType, port.main ? '(main)' : '(not main)');
+    for (const problem of declared.problems)
+      console.log ('  ports:', problem);
+    console.log (declared.problems.length === 0
+      ? 'one stereo main output and one mono note input, as the DSP is written for'
+      : declared.problems.length + ' port problem(s)');
+
     // The window functions a host calls without checking them first.
     const gui = pluginInstance.extension ('clap.gui');
     const apiPtr = plugin.writeString (plugin.alloc (32), 'webview');
@@ -949,7 +1025,8 @@ async function main () {
     console.log ('a soak of 2000 blocks -> peak', soakPeak.toFixed (6), Number.isFinite (soakPeak) ? '(finite)' : '(NOT FINITE)');
 
     const ok = problems.length === 0 && created === 1 && refused === 0
-      && unknown === 0 && secondPeak > 0 && Number.isFinite (soakPeak) && soakPeak > 0;
+      && unknown === 0 && secondPeak > 0 && Number.isFinite (soakPeak) && soakPeak > 0
+      && declared.problems.length === 0;
     console.log (ok ? 'OK: the API is complete' : 'FAIL: the API is incomplete');
     process.exit (ok ? 0 : 1);
   }
