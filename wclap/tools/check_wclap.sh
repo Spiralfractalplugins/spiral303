@@ -55,6 +55,12 @@ echo "== the extensions, the ports the host builds its buffers from, and the sta
 node wclap/tools/wclap-host.mjs "$MODULE" --host-half "$HOST_HALF" --api --state-out "$WORK/wasm_state.bin"
 
 echo
+echo "== the page around the canvas =="
+# The letterbox, the fallback message, the field ring and the bundle contents:
+# none of them is drawn by the plugin, so none of them shows up in a canvas check.
+node wclap/tools/check_page_css.mjs
+
+echo
 echo "== the interface draws itself =="
 node wclap/tools/dump_state.mjs "$MODULE" "$HOST_HALF" "$WORK/state.json"
 node wclap/tools/check_ui.mjs "$WORK/state.json"

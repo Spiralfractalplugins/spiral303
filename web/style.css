@@ -1,26 +1,49 @@
+/* Hallmark · checked: 2026-10-27 · genre: editorial (inferred) * floor: 0 FAIL · fixed: 7 (20, 33, 34 x2, 48 x3, 26a, 27) · structural: 2 printed (F1 fixed, F23 dismissed) * built: the project · redesign: polish · shape: app screen · v2.0.0 */
+/* Hallmark · waive 26b · the only DOM control of the page is the text field a double-click opens, and its eight states are painted: hover, press and disabled come from the skin table in drawKnob, drawButton and drawComboFrame · a CSS :active rule would style a control that does not exist in the document */
+/* Hallmark · dismissed F23 · the page is never a link target and never a preview: a CLAP host reads it out of the plugin's own memory and puts it in a window of its own */
+
 /* The Spiral303 interface in the browser.
    The page is served from the plugin's own memory, so it cannot rely on
    anything outside its own bundle. */
+
+/* The chrome around the canvas, in one place. The instrument itself is painted
+   from the skin tables in app.js, which are the same tables the native editor
+   reads: these three values repeat the first of them, the Dark skin, so that the
+   letterbox, the fallback text and the field ring are the panel's own colours
+   rather than a second opinion typed in here. wclap/tools/check_page_css.mjs
+   compares them, and fails the build when the two drift apart. */
+:root {
+  --page-bg: #0e1115;      /* SKINS[0].faceLo: the darkest face of the Dark skin */
+  --page-fg: #c8d0dc;      /* SKINS[0].text:   its ink */
+  --page-font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #0e1115;
-  overflow: hidden;
-  color: #c8d0dc;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: var(--page-bg);
+  overflow-x: clip;
+  color: var(--page-fg);
+  font-family: var(--page-font);
 }
 
 #ui {
   display: block;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   touch-action: none;
   cursor: default;
 }
 
+/* The message for a host that cannot run the module. It is in the markup rather
+   than drawn by the page, because the page is the thing that failed, and it lies
+   over the canvas: the canvas keeps its full height whether or not anything ever
+   paints into it, so a message underneath the fold would be a message nobody
+   reads. The page hides it as soon as it has a context to draw with. */
 #fallback {
+  position: fixed;
+  inset: 0;
   padding: 2rem;
   font-size: 14px;
   line-height: 1.6;
@@ -28,4 +51,13 @@ html, body {
 
 #fallback p {
   margin: 0 0 0.6rem;
+}
+
+/* The one real control of the page: the field a double-click opens to type an
+   exact value. The ring is the current colour, which the page sets from the skin
+   in play, so it clears three to one against whatever panel it lands on, and it
+   appears with the keypress, not after a transition. */
+input:focus-visible {
+  outline: 2px solid;
+  outline-offset: 1px;
 }

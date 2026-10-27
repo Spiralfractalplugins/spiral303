@@ -297,6 +297,12 @@ let loadedUser = null;      // the stored name of the user preset in play
 const canvas = document.getElementById('ui');
 const ctx = canvas.getContext('2d');
 
+// The page carries its own message for a host that cannot run it, in the markup,
+// because a message drawn by the script would not survive the script failing.
+// Once there is a context to paint into, the message is in the way.
+const fallback = document.getElementById('fallback');
+if (ctx && fallback) fallback.style.display = 'none';
+
 // A canvas that takes pointer events has to tell the browser it is not a
 // surface to scroll or to zoom with, or a touch drag never reaches a knob.
 canvas.style.touchAction = 'none';

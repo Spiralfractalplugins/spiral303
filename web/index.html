@@ -11,10 +11,15 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<canvas id="ui"></canvas>
-<div id="fallback" hidden>
+<!-- A canvas is nothing at all to anyone who cannot see it, so it says what is
+     on it. The keyboard works through the window, not through the element. -->
+<canvas id="ui" aria-label="Spiral303, a TB-303 bassline synthesizer and its sequencer"></canvas>
+<!-- Visible until the page has a context to paint into: the host that cannot run
+     the module never runs this markup's own script, so nothing would reveal a
+     message that starts hidden. -->
+<div id="fallback">
   <p>This host cannot show the Spiral303 interface.</p>
-  <p>The plugin still works: the parameters are in the host's own window.</p>
+  <p>The plugin still works: the parameters are in the host’s own window.</p>
 </div>
 <script type="module" src="app.js"></script>
 </body>
