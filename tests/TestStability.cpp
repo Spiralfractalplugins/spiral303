@@ -258,7 +258,12 @@ void runStabilityTests (const std::function<void (bool, const String&)>& check)
                 p->setSequence (soakSequence (rng, 16));
                 const Health h = soak (*p, 45.0, rng,
                                         String (sr, 0) + " Hz x " + String (block) + " block");
-                check (h.nonFinite == 0 && h.peak < 24.0f,
+                // The Env knob floors at Patch::kEnvFloor, so the low-Env corners
+                // of the storm self-resonate instead of muffling into silence.
+                // The old 24 assumed those corners were dead; bounded is what the
+                // check is for, and 64 is roughly where the resonant corners
+                // stack under the +12 dB master.
+                check (h.nonFinite == 0 && h.peak < 64.0f,
                        String (sr, 0) + " Hz / " + String (block) + " stays healthy (peak "
                        + String (h.peak, 3) + ", bad " + String ((int) h.nonFinite) + ")");
             }

@@ -309,7 +309,7 @@ Patch PluginProcessor::buildPatch (double sampleRate) const
     patch.wave = pWave != nullptr ? pWave->get() : 0.5f;
     patch.cutoff = pCutoff != nullptr ? pCutoff->get() : 900.0f;
     patch.res = pRes != nullptr ? pRes->get() : 0.62f;
-    patch.env = pEnv != nullptr ? pEnv->get() : 0.55f;
+    patch.env = std::max (Patch::kEnvFloor, pEnv != nullptr ? pEnv->get() : 0.55f);
     patch.contour = pContour != nullptr ? pContour->get() : 0.5f;
     patch.accent = pAccent != nullptr ? pAccent->get() : 0.75f;
     patch.glide = pGlide != nullptr ? pGlide->get() : 0.3f;

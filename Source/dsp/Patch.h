@@ -15,6 +15,10 @@ struct Patch
     float cutoff = 800.0f;    // Hz, before envelope modulation
     float res = 0.5f;         // 0..1
     float env = 0.5f;         // how far the contour opens the filter
+    /** The panel never lets Env close fully: the original's contour pot always
+        leaks about a tenth of the sweep, so even at zero the note still bites
+        instead of only muffling. Applied where the knob value becomes a Patch. */
+    static constexpr float kEnvFloor = 0.1f;
     float contour = 0.5f;     // decay length as a fraction of the step
     float accent = 0.75f;     // extra level and filter depth on accented steps
     float glide = 0.35f;      // slide time as a fraction of the step

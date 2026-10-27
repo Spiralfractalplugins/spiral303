@@ -134,7 +134,7 @@ namespace MidiMapTables
         if (at (CcRes).seen)
             patch.res = juce::jlimit (0.0f, 1.0f, at (CcRes).value);
         if (at (CcEnv).seen)
-            patch.env = at (CcEnv).value;
+            patch.env = std::max (Patch::kEnvFloor, at (CcEnv).value);
         if (at (CcContour).seen)
             patch.contour = ParamCurves::contourFromNormalized (at (CcContour).value);
         if (at (CcWarmth).seen)

@@ -225,7 +225,7 @@ namespace spiral303
         patch.wave = paramValue (kWave);
         patch.cutoff = paramValue (kCutoff);
         patch.res = paramValue (kRes);
-        patch.env = paramValue (kEnv);
+        patch.env = std::max (Patch::kEnvFloor, paramValue (kEnv));
         patch.contour = paramValue (kContour);
         patch.accent = paramValue (kAccent);
         patch.glide = paramValue (kGlide);
