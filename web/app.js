@@ -264,7 +264,7 @@ const ACCENT_FLAG = 0x200;
 // the ranges with their unit and digits, the pattern, the gate and the meter.
 const state = {
   params: {}, choices: {}, seq: '', gate: '',
-  preset: '', note: '', skin: 0, version: '', curve: [],
+  preset: '', note: '', skin: 0, version: '', curve: [], tempo: 0,
 };
 const bank = { names: [], credits: [] };
 const paramRanges = {};
@@ -296,6 +296,10 @@ let loadedUser = null;      // the stored name of the user preset in play
 
 const canvas = document.getElementById('ui');
 const ctx = canvas.getContext('2d');
+
+// A canvas that takes pointer events has to tell the browser it is not a
+// surface to scroll or to zoom with, or a touch drag never reaches a knob.
+canvas.style.touchAction = 'none';
 
 let scale = 1;
 let drag = null;            // the knob, strip or wheel a press is holding
@@ -358,6 +362,20 @@ function origin () {
            y: (canvas.clientHeight - DESIGN_HEIGHT * scale) / 2 };
 }
 
+function applySkinIndex (value) {
+  state.skin = Math.round (value || 0);
+  skin = SKINS[Math.min (SKINS.length - 1, Math.max (0, state.skin))];
+}
+
+/** Records a parameter the plugin reported. The page's own edits come back here
+    as well, one value per change: a knob the host moved arrives on a meter tick
+    and has to redraw the control. */
+function setParamValue (id, value) {
+  state.params[id] = value;
+  if (id === 'UiSkin')
+    applySkinIndex (value);
+}
+
 window.addEventListener ('message', (event) => {
   const data = event.data;
   let text = '';
@@ -374,19 +392,27 @@ window.addEventListener ('message', (event) => {
   try { message = JSON.parse (text); } catch (error) { return; }
 
   if (message.t === 'state') {
-    state.params = message.params || {};
-    state.choices = message.choices || {};
-    state.seq = message.seq || '';
-    state.gate = message.gate || '';
-    state.preset = message.preset || '';
-    state.note = message.note || '';
-    state.curve = message.curve || [];
-    state.version = message.version || '';
-    state.skin = Math.round (message.skin || 0);
-    skin = SKINS[Math.min (SKINS.length - 1, Math.max (0, state.skin))];
+    // The full state arrives with hello; a preset load sends the same message
+    // without the statics. Whatever is missing keeps what the page holds, since
+    // the ranges, the choices and the version never change.
+    state.params = message.params || state.params;
+    if (message.choices)
+      state.choices = message.choices;
     if (message.ranges)
       for (const [id, range] of Object.entries (message.ranges))
         paramRanges[id] = range;
+    if (message.version)
+      state.version = message.version;
+    if (message.seq !== undefined)
+      state.seq = message.seq;
+    if (message.gate !== undefined)
+      state.gate = message.gate;
+    if (message.curve !== undefined && message.curve.length)
+      state.curve = message.curve;
+    state.preset = message.preset || '';
+    state.note = message.note || '';
+    if (message.skin !== undefined)
+      applySkinIndex (message.skin);
     parseSequence (state.seq);
     parseGate (state.gate);
     // A preset that arrived from the plugin is clean again; an edit the page
@@ -394,6 +420,16 @@ window.addEventListener ('message', (event) => {
     if (message.preset !== seenPreset)
       bankDirty = false;
     seenPreset = message.preset || '';
+  } else if (message.t === 'param') {
+    setParamValue (message.id, message.v);
+    if (message.curve !== undefined && message.curve.length)
+      state.curve = message.curve;
+  } else if (message.t === 'seq') {
+    state.seq = message.seq;
+    parseSequence (state.seq);
+  } else if (message.t === 'gate') {
+    state.gate = message.gate;
+    parseGate (state.gate);
   } else if (message.t === 'presets') {
     bank.names = message.names || [];
     bank.credits = message.credits || [];
@@ -404,6 +440,11 @@ window.addEventListener ('message', (event) => {
     meter.step = message.step === undefined ? -1 : message.step;
     meter.sector = message.sector === undefined ? -1 : message.sector;
     meter.running = !!message.running;
+    if (message.tempo !== undefined)
+      state.tempo = message.tempo;
+    if (message.params)
+      for (const [id, value] of Object.entries (message.params))
+        setParamValue (id, value);
   } else if (message.t === 'audio') {
     downloadWav (message);
   }
@@ -1638,9 +1679,11 @@ function drawHeader () {
   drawButton ({ label: '>', rect: HEADER.presetNext });
 
   // The tempo: the readout the timer writes, with the accent for manual play.
-  const bpm = (state.params.BPM || 0).toFixed (1);
+  // Under Sync = Host the clock follows the DAW, so the number is the host's,
+  // not the knob's — the native label prints the same thing.
   const manual = manualSync();
-  text (bpm + ' BPM  ' + (manual ? 'manual' : 'host'), HEADER.tempo, 11,
+  const shown = manual ? (state.params.BPM || 0) : (state.tempo || state.params.BPM || 0);
+  text (shown.toFixed (1) + ' BPM  ' + (manual ? 'manual' : 'host'), HEADER.tempo, 11,
         manual ? skin.accentAlt : skin.textDim, { align: 'right', bold: true });
 
   drawMeter (HEADER.meter);
@@ -2440,6 +2483,13 @@ function sendParam (id, value) {
   send ({ t: 'param', id, v: value });
 }
 
+/** Where a hand movement begins and ends. The host records automation, so it
+    has to be told that the values between the two are one gesture: a knob turn
+    is one point on the lane, not a hundred. */
+function sendGesture (id, begin) {
+  send ({ t: 'gesture', id, begin });
+}
+
 // ---------------------------------------------------------------------------
 // The overlay cards: About, the manual, and a plain message
 
@@ -2873,6 +2923,12 @@ function toggleGate (index) {
 }
 
 function toggleParam (id) {
+  // Play belongs to the manual clock. Under Sync = Host the host's transport is
+  // the run line, and a button that did nothing would be a lie: the native
+  // editor dims it for the same reason.
+  if (id === 'Play' && ! manualSync())
+    return;
+
   sendParam (id, buttonOn (id) ? 0 : 1);
 }
 
@@ -2984,25 +3040,18 @@ function pressAt (p, event) {
     drag = { kind: 'knob', entry: knob, last: { x: event.clientX, y: event.clientY },
              norm: normalise (knob.knob.id, state.params[knob.knob.id]) };
     hoverKnob = knob.knob.id;
+    sendGesture (knob.knob.id, true);
     return;
   }
 
   const fader = faderAt (p);
   if (fader !== null) {
-    // A double click opens the exact-value box, the same as on a knob.
-    if (event.detail >= 2) {
-      openValueInput (fader.fader.cell, paramText (fader.fader.id), (value) => {
-        const parsed = parseFloat (value);
-        if (! isNaN (parsed))
-          sendParam (fader.fader.id, parsed);
-      });
-      return;
-    }
     // Slider snaps-to-mouse is off: the press remembers where the thumb was
     // and the drag carries that offset, exactly like the native fader.
     drag = { kind: 'fader', entry: fader,
              grabNorm: normalise (fader.fader.id, state.params[fader.fader.id] || 0),
              startX: p.x };
+    sendGesture (fader.fader.id, true);
     return;
   }
 
@@ -3036,6 +3085,8 @@ function pressAt (p, event) {
   if (layout.filterPlot !== undefined && hit (p.x, p.y, layout.filterPlot)) {
     filterDrag = { x: event.clientX, y: event.clientY,
                    cutoff: state.params.Cutoff || 0, res: state.params.Res || 0 };
+    sendGesture ('Cutoff', true);
+    sendGesture ('Res', true);
     return;
   }
 
@@ -3128,7 +3179,7 @@ function moveAt (p, event) {
     const dx = event.clientX - drag.last.x;
     const dy = event.clientY - drag.last.y;
     drag.last = { x: event.clientX, y: event.clientY };
-    drag.norm = Math.min (1, Math.max (0, drag.norm + knobDragStep (drag.entry, dx, dy)));
+    drag.norm = Math.min (1, Math.max (0, drag.norm + knobDragStep (dx, dy, event.shiftKey)));
     sendParam (drag.entry.knob.id, denormalise (drag.entry.knob.id, drag.norm));
     return;
   }
@@ -3183,23 +3234,26 @@ function releaseAt () {
     armVel = -1;
     writeStep (step, REST);
   }
+  if (drag !== null && drag.kind === 'knob')
+    sendGesture (drag.entry.knob.id, false);
+  if (drag !== null && drag.kind === 'fader')
+    sendGesture (drag.entry.fader.id, false);
+  if (filterDrag !== null) {
+    sendGesture ('Cutoff', false);
+    sendGesture ('Res', false);
+  }
   armVel = -1;
   gateLast = -1;
   filterDrag = null;
   drag = null;
 }
 
-/** Slider::handleVelocityDrag for RotaryHorizontalVerticalDrag, with the module
-    defaults: sensitivity 1, threshold 1, offset 0. */
-function knobDragStep (entry, dx, dy) {
-  const diff = dx - dy;
-  const maxSpeed = Math.max (200, entry.rect.w * scale);
-  const speed = Math.min (Math.max (0, Math.abs (diff)), maxSpeed);
-  if (speed === 0)
-    return 0;
-  const term = Math.min (0.5, Math.max (0, speed - 1) / maxSpeed);
-  const amount = 0.2 * (1.0 + Math.sin (Math.PI * (1.5 + term)));
-  return diff < 0 ? -amount : amount;
+/** A knob drag, linear: 200 px for the whole range, a thousand with Shift held
+    for the fine pass. JUCE's velocity curve (0.2 * (1 + sin(pi * (1.5 + t))))
+    is not worth porting: three pixels of the mouse move a tenth of a per cent,
+    and the knob reads as broken. */
+function knobDragStep (dx, dy, shift) {
+  return (dx - dy) / (shift ? 1000 : 200);
 }
 
 /** One notch is the parameter's own interval in its own units, one percent of
@@ -3342,30 +3396,53 @@ function onKeyDown (event) {
 // ---------------------------------------------------------------------------
 // The wiring
 
-canvas.addEventListener ('mousedown', (event) => {
+canvas.addEventListener ('pointerdown', (event) => {
   event.preventDefault();
+  // The capture keeps the moves and the release coming to the canvas even when
+  // the pointer leaves the panel: a drag that ends because the mouse reached the
+  // edge of the window is not a drag, it is a dead control.
+  if (canvas.setPointerCapture !== undefined)
+    canvas.setPointerCapture (event.pointerId);
   pressAt (canvasPoint (event), event);
   draw();
 });
 
 canvas.addEventListener ('contextmenu', (event) => event.preventDefault());
 
-window.addEventListener ('mousemove', (event) => {
+canvas.addEventListener ('pointermove', (event) => {
   if (askBox === null && card === null)
     moveAt (canvasPoint (event), event);
   draw();
 });
 
-window.addEventListener ('mouseup', () => {
+function endDragEvent (event) {
   releaseAt ();
+  if (event.pointerId !== undefined && canvas.releasePointerCapture !== undefined
+      && canvas.hasPointerCapture !== undefined && canvas.hasPointerCapture (event.pointerId))
+    canvas.releasePointerCapture (event.pointerId);
   draw();
-});
+}
+
+canvas.addEventListener ('pointerup', endDragEvent);
+canvas.addEventListener ('pointercancel', endDragEvent);
 
 canvas.addEventListener ('dblclick', (event) => {
   const p = canvasPoint (event);
   const knob = knobAt (p);
-  if (knob !== null && knobLive (knob.knob.id))
+  if (knob !== null && knobLive (knob.knob.id)) {
     promptValue (knob.knob, knob);
+    draw();
+    return;
+  }
+  // A double click on a fader opens the exact-value box, the same as on a knob.
+  const fader = faderAt (p);
+  if (fader !== null) {
+    openValueInput (fader.fader.cell, paramText (fader.fader.id), (value) => {
+      const parsed = parseFloat (value);
+      if (! isNaN (parsed))
+        sendParam (fader.fader.id, parsed);
+    });
+  }
   draw();
 });
 

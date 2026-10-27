@@ -42,6 +42,10 @@ echo "== the interface is served and answers =="
 node wclap/tools/wclap-host.mjs "$MODULE" --host-half "$HOST_HALF" --webview | tail -3
 
 echo
+echo "== the host's transport drives the clock, and the page's edits reach the host =="
+node wclap/tools/wclap-host.mjs "$MODULE" --host-half "$HOST_HALF" --transport | tail -2
+
+echo
 echo "== every extension offers all of its functions =="
 # A host that reads a function pointer without checking it for null traps, and
 # the error it reports is a bare address in the module's memory (openDAW:

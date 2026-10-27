@@ -311,23 +311,22 @@ namespace spiral303
 
     void WebView::sendState()
     {
-        auto& core = plugin.core();
+        sendStateBody (true);
+    }
 
-        std::string json = "{\"t\":\"state\",\"params\":{";
+    void WebView::sendPresetEcho()
+    {
+        sendStateBody (false);
+    }
+
+    std::string WebView::staticsBlock()
+    {
+        // The parts of the state that never move: the parameter table's ranges
+        // and names, the choices of the enum knobs, the version. The page gets
+        // them once, with the state that answers hello.
+        std::string json = "\"choices\":{";
+
         bool first = true;
-        for (int i = 0; i < paramCount(); ++i)
-        {
-            if (! first)
-                json += ',';
-            first = false;
-            json += '"';
-            json += paramDef (i).id;
-            json += "\":";
-            json += numberToText (static_cast<double> (core.paramValue (i)));
-        }
-        json += "},\"choices\":{";
-
-        first = true;
         for (int i = 0; i < paramCount(); ++i)
         {
             const auto& def = paramDef (i);
@@ -380,6 +379,51 @@ namespace spiral303
             json += '"';
             json += '}';
         }
+        json += '}';
+
+        // The header title carries the version, so the page cannot invent one.
+        // The macro expands to a C++ string literal, whose quotes are not part
+        // of the bytes: JSON still needs its own.
+        json += ",\"version\":\"" SPIRAL303_VERSION "\"";
+
+        return json;
+    }
+
+    std::string WebView::curveBlock()
+    {
+        // The response curve, the way the scope draws it.
+        auto& core = plugin.core();
+        const float cutoff = core.uiParamValue (kCutoff);
+        const float res = core.uiParamValue (kRes);
+        const float slope = core.uiParamValue (kTone);
+
+        std::string json;
+        for (int i = 0; i < 96; ++i)
+        {
+            if (i > 0)
+                json += ',';
+            const float freq = 20.0f * std::pow (1000.0f, static_cast<float> (i) / 95.0f);
+            json += numberToText (filterResponseDb (freq, cutoff, res, slope));
+        }
+        return json;
+    }
+
+    void WebView::sendStateBody (bool withStatics)
+    {
+        auto& core = plugin.core();
+
+        std::string json = "{\"t\":\"state\",\"params\":{";
+        bool first = true;
+        for (int i = 0; i < paramCount(); ++i)
+        {
+            if (! first)
+                json += ',';
+            first = false;
+            json += '"';
+            json += paramDef (i).id;
+            json += "\":";
+            json += numberToText (static_cast<double> (core.uiParamValue (i)));
+        }
         json += "},\"seq\":\"";
 
         const auto sequence = core.getSequence();
@@ -391,26 +435,67 @@ namespace spiral303
 
         json += "\",\"preset\":\"" + jsonEscape (core.currentPresetName()) + "\"";
         json += ",\"note\":\"" + jsonEscape (core.presetNote()) + "\"";
-        json += ",\"skin\":" + numberToText (core.paramValue (kUiSkin));
-        // The header title carries the version, so the page cannot invent one.
-        // The macro expands to a C++ string literal, whose quotes are not part
-        // of the bytes: JSON still needs its own.
-        json += ",\"version\":\"" SPIRAL303_VERSION "\"";
-        // The response curve, the way the scope draws it.
-        json += ",\"curve\":[";
-        const float cutoff = core.paramValue (kCutoff);
-        const float res = core.paramValue (kRes);
-        const float slope = core.paramValue (kTone);
-        for (int i = 0; i < 96; ++i)
-        {
-            if (i > 0)
-                json += ',';
-            const float freq = 20.0f * std::pow (1000.0f, static_cast<float> (i) / 95.0f);
-            json += numberToText (filterResponseDb (freq, cutoff, res, slope));
-        }
-        json += "]}";
+        json += ",\"skin\":" + numberToText (core.uiParamValue (kUiSkin));
+        json += ",\"curve\":[" + curveBlock() + "]";
+
+        if (withStatics)
+            json += "," + staticsBlock();
+
+        json += "}";
 
         send (json);
+    }
+
+    void WebView::sendParamEcho (int index, double value)
+    {
+        if (index < 0 || index >= paramCount())
+            return;
+
+        std::string json = std::string ("{\"t\":\"param\",\"id\":\"") + jsonEscape (paramDef (index).id)
+                         + "\",\"v\":" + numberToText (value);
+
+        // The scope redraws from the curve, so the three knobs that shape the
+        // filter bring it along; nothing else can move it.
+        if (index == kCutoff || index == kRes || index == kTone)
+            json += ",\"curve\":[" + curveBlock() + "]";
+
+        json += "}";
+        send (json);
+    }
+
+    void WebView::sendSeqEcho()
+    {
+        send ("{\"t\":\"seq\",\"seq\":\"" + jsonEscape (plugin.core().getSequence().encode().raw()) + "\"}");
+    }
+
+    void WebView::sendGateEcho()
+    {
+        send ("{\"t\":\"gate\",\"gate\":\"" + jsonEscape (plugin.core().getGate().encode().raw()) + "\"}");
+    }
+
+    void WebView::noteParamFromHost (int index)
+    {
+        if (index < 0 || index >= paramCount())
+            return;
+
+        const std::lock_guard<std::mutex> lock (hostParamLock);
+        for (const int dirty : hostParamDirty)
+            if (dirty == index)
+                return;
+
+        hostParamDirty.push_back (index);
+    }
+
+    void WebView::askHostForFlush()
+    {
+        // While the host rolls, its next process() call takes the queue with it.
+        // Standing still, it comes only if asked.
+        if (plugin.transportIsRolling())
+            return;
+
+        const auto* params = plugin.hostParams();
+        if (params != nullptr && params->request_flush != nullptr)
+            params->request_flush (host);
     }
 
     void WebView::sendMeter()
@@ -424,6 +509,31 @@ namespace spiral303
         json += ",\"step\":" + std::to_string (core.playingStep());
         json += ",\"sector\":" + std::to_string (core.playingGateSector());
         json += ",\"running\":" + std::string (core.sequencerRunning() ? "true" : "false");
+        // The clock's tempo: the host's in Sync = Host, the knob's in Manual.
+        json += ",\"tempo\":" + numberToText (core.tempoBpm());
+
+        std::vector<int> dirty;
+        {
+            const std::lock_guard<std::mutex> lock (hostParamLock);
+            dirty.swap (hostParamDirty);
+        }
+
+        if (! dirty.empty())
+        {
+            // The host moved these while the page was not looking.
+            json += ",\"params\":{";
+            for (size_t i = 0; i < dirty.size(); ++i)
+            {
+                if (i > 0)
+                    json += ',';
+                json += '"';
+                json += paramDef (dirty[i]).id;
+                json += "\":";
+                json += numberToText (static_cast<double> (core.paramValue (dirty[i])));
+            }
+            json += '}';
+        }
+
         json += "}";
 
         send (json);
@@ -526,7 +636,32 @@ namespace spiral303
                 v = std::min (def.maxValue, std::max (def.minValue, v));
 
             core.setParam (index, static_cast<float> (v));
-            sendState();
+
+            // The host has to hear about it, or the DAW's automation and the
+            // page's knob disagree and the change is lost with the session.
+            plugin.queueParamFromPage (index, v);
+            plugin.markHostDirty();
+            askHostForFlush();
+
+            sendParamEcho (index, v);
+            return;
+        }
+
+        if (type->text == "gesture")
+        {
+            // The page's pointer went down or up on a control. The host wraps a
+            // hand movement in a pair of gestures, so it knows where one edit
+            // ends and the next begins.
+            const auto* id = root.member ("id");
+            const auto* begin = root.member ("begin");
+            if (id == nullptr || ! id->isString() || begin == nullptr)
+                return;
+
+            const int index = paramIndexForId (id->text.c_str());
+            if (index < 0)
+                return;
+
+            plugin.queueGestureFromPage (index, begin->isBool() ? begin->boolean : begin->number != 0.0);
             return;
         }
 
@@ -537,7 +672,8 @@ namespace spiral303
                 return;
 
             core.setSequence (Sequence::decode (juce::String (text->text)));
-            sendState();
+            plugin.markHostDirty();
+            sendSeqEcho();
             return;
         }
 
@@ -548,7 +684,8 @@ namespace spiral303
                 return;
 
             core.setGate (GatePattern::decode (juce::String (text->text)));
-            sendState();
+            plugin.markHostDirty();
+            sendGateEcho();
             return;
         }
 
@@ -563,7 +700,10 @@ namespace spiral303
                 if (preset.name == name->text)
                 {
                     core.applyPreset (preset);
-                    sendState();
+                    plugin.queueAllParamsFromPage();
+                    plugin.markHostDirty();
+                    askHostForFlush();
+                    sendPresetEcho();
                     return;
                 }
             }
@@ -581,9 +721,14 @@ namespace spiral303
 
             PresetDef preset;
             if (parsePresetText (json->text, preset, error))
+            {
                 core.applyPreset (preset);
+                plugin.queueAllParamsFromPage();
+                plugin.markHostDirty();
+                askHostForFlush();
+            }
 
-            sendState();
+            sendPresetEcho();
             return;
         }
 
@@ -616,7 +761,7 @@ namespace spiral303
             ProcessorCore bounce;
             bounce.prepare (48000.0);
             for (int i = 0; i < paramCount(); ++i)
-                bounce.setParam (i, core.paramValue (i));
+                bounce.setParam (i, core.uiParamValue (i));
             // Force a manual, running transport: with Sync=Host a bounce would
             // depend on who calls process, which is nobody here.
             bounce.setParam (paramIndexForId ("Sync"), 1.0f);
@@ -625,7 +770,7 @@ namespace spiral303
             bounce.setSequence (core.getSequence());
             bounce.setGate (core.getGate());
 
-            const double bpm = std::max (20.0, static_cast<double> (core.paramValue (kBpm)));
+            const double bpm = std::max (20.0, static_cast<double> (core.uiParamValue (kBpm)));
             const double seconds = std::min (10.0, 2.0 * 4.0 * 60.0 / bpm + 0.2);
             constexpr int blockSamples = 512;
             juce::AudioBuffer<float> buffer (2, blockSamples);

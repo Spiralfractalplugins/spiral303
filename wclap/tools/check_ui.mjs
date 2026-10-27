@@ -63,12 +63,19 @@ const element = (tag) => ({
   select: () => {}, getBoundingClientRect: () => ({ left: 0, top: 0 }),
 });
 
+// A drag holds the pointer: with a real browser the canvas keeps getting the
+// moves even when the mouse leaves the panel. The stub says what it captured, so
+// a page that never asked for the capture shows up as one that drops its drags.
+const captured = new Set ();
 const canvas = {
   ...element ('canvas'),
   width: DESIGN.w, height: DESIGN.h, clientWidth: DESIGN.w, clientHeight: DESIGN.h,
   getContext: () => context2d,
   addEventListener: (name, fn) => { (listeners['canvas:' + name] ||= []).push (fn); },
   getBoundingClientRect: () => ({ left: 0, top: 0, width: DESIGN.w, height: DESIGN.h }),
+  setPointerCapture: (id) => { captured.add (id); },
+  releasePointerCapture: (id) => { captured.delete (id); },
+  hasPointerCapture: (id) => captured.has (id),
 };
 
 const posted = [];
@@ -211,13 +218,13 @@ check (L.grid.x > 16, 'the grid starts after the note gutter', L.grid.x);
 check (L.flagRows[0].y >= L.pitchBottom, 'the flag rows sit below the pitch rows');
 
 // --- gestures -----------------------------------------------------------------
-const at = (x, y, extra) => Object.assign ({ clientX: x, clientY: y, button: 0,
+const at = (x, y, extra) => Object.assign ({ clientX: x, clientY: y, button: 0, pointerId: 1,
   shiftKey: false, preventDefault () {}, deltaY: 0 }, extra);
-// A press and a release at the same point: JUCE gives a mouseDrag only when the
-// pointer actually moved, so a click that never moved must not paint twice.
+// A press and a release at the same point: the page paints on a drag only when
+// the pointer actually moved, so a click that never moved must not paint twice.
 const click = (x, y, extra) => {
-  fire ('canvas:mousedown', at (x, y, extra));
-  fire ('window:mouseup', at (x, y, extra));
+  fire ('canvas:pointerdown', at (x, y, extra));
+  fire ('canvas:pointerup', at (x, y, extra));
 };
 const lastSent = (type) => {
   for (let i = posted.length - 1; i >= 0; --i) if (posted[i].t === type) return posted[i];
@@ -368,37 +375,92 @@ fire ('window:keydown', { key: 'Enter', preventDefault () {} });
 check (lastSent ('param')?.id === 'Cutoff' && Math.abs (lastSent ('param').v - 555) < 1,
        'a double-click takes an exact value', lastSent ('param')?.v);
 
-// Dragging a knob moves it in the parameter's own direction: up is more.
+// Dragging a knob moves it in the parameter's own direction: up is more, and
+// two hundred pixels are the whole range. The page used to port JUCE's velocity
+// curve, under which three pixels were worth a tenth of a per cent.
 const wave = L.knobs.find ((k) => k.knob.id === 'Wave');
+const waveRange = state.ranges.Wave || { min: 0, max: 1 };
 const before = state.params.Wave;
 posted.length = 0;
-fire ('canvas:mousedown', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2));
+fire ('canvas:pointerdown', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2));
+check (captured.has (1), 'the drag captures the pointer, so it survives the edge of the panel');
 for (let dy = 10; dy <= 200; dy += 10)
-  fire ('window:mousemove', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2 - dy));
-fire ('window:mouseup', at (0, 0));
+  fire ('canvas:pointermove', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2 - dy));
+fire ('canvas:pointerup', at (0, 0));
 const dragged = lastSent ('param');
 check (dragged?.id === 'Wave' && dragged.v > before, 'dragging up opens the knob', dragged?.v);
+check (Math.abs (dragged.v - waveRange.max) < 1e-6,
+       'two hundred pixels are the whole range', dragged?.v + ' of ' + waveRange.max);
+check (! captured.has (1), 'the release gives the pointer back');
+
+// The hand movement is one gesture: the host wraps a knob turn in a pair of
+// events, or the automation lane fills with a point per mouse move.
+{
+  const gestures = posted.filter ((m) => m.t === 'gesture' && m.id === 'Wave');
+  const first = posted.findIndex ((m) => m.t === 'gesture' && m.id === 'Wave');
+  const values = posted.map ((m, i) => ({ m, i })).filter ((e) => e.m.t === 'param' && e.m.id === 'Wave');
+  const lastGesture = posted.map ((m, i) => ({ m, i })).filter ((e) => e.m.t === 'gesture').pop ();
+  check (gestures.length === 2 && gestures[0].begin === true && gestures[1].begin === false,
+         'a drag opens and closes its gesture', gestures.length);
+  check (values.every ((e) => e.i > first && e.i < lastGesture.i),
+         'every value sits inside the gesture');
+}
+
+// A small move still moves: three pixels must be worth a hundredth of a range.
+posted.length = 0;
+fire ('canvas:pointerdown', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2));
+fire ('canvas:pointermove', at (wave.rect.x + wave.rect.w / 2 + 3, wave.rect.y + wave.rect.h / 2));
+const nudge = lastSent ('param');
+fire ('canvas:pointerup', at (0, 0));
+const nudgeSpan = waveRange.max - waveRange.min;
+check (Math.abs (nudge.v - (before + nudgeSpan * 3 / 200)) < nudgeSpan * 0.005,
+       'three pixels move the knob by three two-hundredths', nudge.v);
+
+// Shift is the fine pass: five times less for the same distance.
+posted.length = 0;
+fire ('canvas:pointerdown', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2));
+fire ('canvas:pointermove', at (wave.rect.x + wave.rect.w / 2 + 3, wave.rect.y + wave.rect.h / 2,
+                                { shiftKey: true }));
+const fine = lastSent ('param');
+fire ('canvas:pointerup', at (0, 0));
+check (Math.abs (fine.v - (before + nudgeSpan * 3 / 1000)) < nudgeSpan * 0.002,
+       'Shift drags the knob five times finer', fine.v);
 
 // The response plot is a control: a drag right raises the cutoff.
 const plot = context.window.__layout.filterPlot;
 posted.length = 0;
-fire ('canvas:mousedown', at (plot.x + plot.w / 2, plot.y + plot.h / 2));
-fire ('window:mousemove', at (plot.x + plot.w / 2 + 40, plot.y + plot.h / 2));
-fire ('window:mouseup', at (0, 0));
+fire ('canvas:pointerdown', at (plot.x + plot.w / 2, plot.y + plot.h / 2));
+fire ('canvas:pointermove', at (plot.x + plot.w / 2 + 40, plot.y + plot.h / 2));
+fire ('canvas:pointerup', at (0, 0));
 const plotted = posted.filter ((m) => m.t === 'param' && m.id === 'Cutoff').pop ();
 check (plotted !== undefined && plotted.v > state.params.Cutoff,
        'dragging the plot right opens the filter', plotted?.v);
+check (posted.some ((m) => m.t === 'gesture' && m.id === 'Res' && m.begin),
+       'the plot drags resonance inside a gesture too');
 
 // --- the keyboard -------------------------------------------------------------
 // The knob under the pointer answers the arrows, one interval a press.
-fire ('window:mousemove', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2));
+fire ('canvas:pointermove', at (wave.rect.x + wave.rect.w / 2, wave.rect.y + wave.rect.h / 2));
 posted.length = 0;
 fire ('window:keydown', { key: 'ArrowUp', preventDefault () {} });
 check (lastSent ('param')?.id === 'Wave', 'the arrows step the knob under the pointer');
 
-posted.length = 0;
-fire ('window:keydown', { key: ' ', preventDefault () {} });
-check (lastSent ('param')?.id === 'Play', 'the space bar runs the sequencer');
+// Play belongs to the manual clock: under Sync = Host the host's transport is the
+// run line, and the page must not send a command that nothing obeys.
+{
+  const hostSync = Object.assign ({}, state, { params: Object.assign ({}, state.params, { Sync: 0 }) });
+  feed (hostSync);
+  posted.length = 0;
+  fire ('window:keydown', { key: ' ', preventDefault () {} });
+  check (lastSent ('param') === null, 'the space bar does nothing under Sync = Host');
+
+  const manual = Object.assign ({}, state, { params: Object.assign ({}, state.params, { Sync: 1 }) });
+  feed (manual);
+  posted.length = 0;
+  fire ('window:keydown', { key: ' ', preventDefault () {} });
+  check (lastSent ('param')?.id === 'Play', 'the space bar runs the sequencer in Manual');
+  feed (state);
+}
 
 posted.length = 0;
 fire ('window:keydown', { key: 'ArrowRight', preventDefault () {} });
@@ -411,10 +473,10 @@ const noteY = L.pitchBottom - L.rowH / 2;
 
 // A drag that stays inside the row rides the bar: the note keeps its pitch.
 posted.length = 0;
-fire ('canvas:mousedown', at (cellCentre.x, noteY));
-fire ('window:mousemove', at (cellCentre.x, noteY - 4));
-fire ('window:mousemove', at (cellCentre.x, noteY - 6));
-fire ('window:mouseup', at (cellCentre.x, noteY - 6));
+fire ('canvas:pointerdown', at (cellCentre.x, noteY));
+fire ('canvas:pointermove', at (cellCentre.x, noteY - 4));
+fire ('canvas:pointermove', at (cellCentre.x, noteY - 6));
+fire ('canvas:pointerup', at (cellCentre.x, noteY - 6));
 const ridden = lastSent ('seq');
 check (ridden !== null && stepsOf (ridden)[0] === 128 && velOf (ridden)[0] > 64,
        'dragging a note bar raises its velocity', ridden && velOf (ridden)[0]);
@@ -422,9 +484,9 @@ check (ridden !== null && stepsOf (ridden)[0] === 128 && velOf (ridden)[0] > 64,
 // A drag that leaves the row paints instead, the way a sweep of the pencil does.
 setState ({ seq: 'v1:36:1:' + mid (128) });
 posted.length = 0;
-fire ('canvas:mousedown', at (cellCentre.x, noteY));
-fire ('window:mousemove', at (cellCentre.x, noteY - 40));
-fire ('window:mouseup', at (cellCentre.x, noteY - 40));
+fire ('canvas:pointerdown', at (cellCentre.x, noteY));
+fire ('canvas:pointermove', at (cellCentre.x, noteY - 40));
+fire ('canvas:pointerup', at (cellCentre.x, noteY - 40));
 const swept = lastSent ('seq');
 check (swept !== null && stepsOf (swept)[0] > 128, 'a drag out of the row moves the note',
        swept && stepsOf (swept)[0]);
@@ -463,6 +525,40 @@ posted.length = 0;
 click (userRow.x + 2, userRow.y - 6);
 check (lastSent ('presetText')?.json.indexOf ('"My Line"') > 0,
        'a stored preset goes back to the plugin as text');
+
+// --- what the plugin answers ---------------------------------------------------
+// A mouse move must not cost the whole state: the ranges, the choices and the
+// version never change, so they travel with hello and nothing else.
+{
+  const page = context.window.__state;
+  const stripped = { t: 'state', params: Object.assign ({}, page.params, { Drive: 0.4 }),
+                     seq: page.seq, gate: page.gate, preset: page.preset, note: page.note,
+                     skin: page.skin, curve: [1, 2, 3] };
+  feed (stripped);
+  check (page.params.Drive === 0.4, 'a state without the statics still writes its values');
+
+  shapes.length = 0;
+  click (sync.rect.x + 4, sync.rect.y + 4);
+  check (shapes.some ((s) => s.kind === 'fillText' && /^manual$/i.test (s.text)),
+         'the dropdowns keep their lists after a state without the choices', shapes.length);
+  fire ('window:keydown', { key: 'Escape', preventDefault () {} });
+
+  feed ({ t: 'param', id: 'Cutoff', v: 1234, curve: [0, 1, 2] });
+  check (page.params.Cutoff === 1234 && page.curve.length === 3,
+         'one parameter comes back as one value, with its curve for the filter');
+
+  // The host moved these while the page was not looking: the meter carries them.
+  const hostMoved = Object.assign ({}, state, { params: Object.assign ({}, state.params, { Sync: 0 }) });
+  feed (hostMoved);
+  shapes.length = 0;
+  feed ({ t: 'meter', peak: 0.5, rms: 0.2, gr: 1, step: 3, sector: 0, running: true,
+          tempo: 142.5, params: { Drive: 0.7, Wave: 0.25 } });
+  check (page.params.Drive === 0.7 && page.params.Wave === 0.25,
+         'the meter carries what the host moved');
+  check (shapes.some ((s) => s.kind === 'fillText' && /142\.5 BPM\s+host/.test (s.text)),
+         'the header prints the host tempo, not the knob', shapes.map ((s) => s.text).find ((t) => /BPM/.test (t || '')));
+  feed (state);
+}
 
 // --- the window stretches -----------------------------------------------------
 context.window.innerWidth = 1770;

@@ -1,5 +1,7 @@
 #include "Spiral303Clap.h"
 
+#include <clap/fixedpoint.h>
+
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -117,6 +119,12 @@ namespace spiral303
     //==============================================================================
     bool ClapPlugin::init()
     {
+        if (host != nullptr && host->get_extension != nullptr)
+        {
+            hostParams_ = static_cast<const clap_host_params_t*> (host->get_extension (host, CLAP_EXT_PARAMS));
+            hostState_ = static_cast<const clap_host_state_t*> (host->get_extension (host, CLAP_EXT_STATE));
+        }
+
         processor.prepare (48000.0);
         return true;
     }
@@ -144,6 +152,7 @@ namespace spiral303
 
     void ClapPlugin::stopProcessing()
     {
+        transportRolling.store (false, std::memory_order_relaxed);
     }
 
     void ClapPlugin::reset()
@@ -153,6 +162,156 @@ namespace spiral303
 
     void ClapPlugin::onMainThread()
     {
+    }
+
+    //==============================================================================
+    // The page's changes, on their way to the host.
+    void ClapPlugin::pushOutEventLocked (uint16_t type, clap_id paramId, double value)
+    {
+        // A host that stopped taking events must not fill the queue forever: the
+        // page's values converge, so dropping the oldest is enough.
+        if (outWrite - outRead == static_cast<uint32_t> (kOutEventCapacity))
+            ++outRead;
+
+        outEvents[outWrite % static_cast<uint32_t> (kOutEventCapacity)] = OutEvent { type, paramId, value };
+        ++outWrite;
+    }
+
+    void ClapPlugin::queueGestureFromPage (int index, bool begin)
+    {
+        if (index < 0 || index >= paramCount())
+            return;
+
+        const clap_id id = paramId (index);
+        const std::lock_guard<std::mutex> lock (outLock);
+
+        if (begin)
+        {
+            if (gestureOpen[index])
+                return;
+            gestureOpen[index] = true;
+            pushOutEventLocked (CLAP_EVENT_PARAM_GESTURE_BEGIN, id, 0.0);
+        }
+        else
+        {
+            if (! gestureOpen[index])
+                return;
+            gestureOpen[index] = false;
+            pushOutEventLocked (CLAP_EVENT_PARAM_GESTURE_END, id, 0.0);
+        }
+    }
+
+    void ClapPlugin::queueParamFromPage (int index, double value)
+    {
+        if (index < 0 || index >= paramCount())
+            return;
+
+        const clap_id id = paramId (index);
+        const std::lock_guard<std::mutex> lock (outLock);
+
+        // A change the page did not wrap in a gesture is a single move: give the
+        // host the pair itself, so a gesture never stays open by accident.
+        const bool opensHere = ! gestureOpen[index];
+        if (opensHere)
+        {
+            gestureOpen[index] = true;
+            pushOutEventLocked (CLAP_EVENT_PARAM_GESTURE_BEGIN, id, 0.0);
+        }
+
+        pushOutEventLocked (CLAP_EVENT_PARAM_VALUE, id, value);
+
+        if (opensHere)
+        {
+            gestureOpen[index] = false;
+            pushOutEventLocked (CLAP_EVENT_PARAM_GESTURE_END, id, 0.0);
+        }
+    }
+
+    void ClapPlugin::queueAllParamsFromPage()
+    {
+        // Loading a preset is not a hand movement, so no gestures: just the values.
+        const std::lock_guard<std::mutex> lock (outLock);
+        for (int i = 0; i < paramCount(); ++i)
+        {
+            if (gestureOpen[i])
+            {
+                gestureOpen[i] = false;
+                pushOutEventLocked (CLAP_EVENT_PARAM_GESTURE_END, paramId (i), 0.0);
+            }
+            pushOutEventLocked (CLAP_EVENT_PARAM_VALUE, paramId (i),
+                                static_cast<double> (processor.uiParamValue (i)));
+        }
+    }
+
+    void ClapPlugin::drainOutEvents (const clap_output_events_t* out)
+    {
+        if (out == nullptr || out->try_push == nullptr)
+            return;
+
+        for (;;)
+        {
+            OutEvent ev {};
+            {
+                const std::lock_guard<std::mutex> lock (outLock);
+                if (outRead == outWrite)
+                    return;
+                ev = outEvents[outRead % static_cast<uint32_t> (kOutEventCapacity)];
+                ++outRead;
+            }
+
+            clap_event_param_value_t value {};
+            clap_event_param_gesture_t gesture {};
+            clap_event_header_t* header = nullptr;
+
+            if (ev.type == CLAP_EVENT_PARAM_VALUE)
+            {
+                value.header.size = sizeof (value);
+                value.header.time = 0;
+                value.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+                value.header.type = CLAP_EVENT_PARAM_VALUE;
+                value.param_id = ev.paramId;
+                value.note_id = -1;
+                value.port_index = -1;
+                value.channel = -1;
+                value.key = -1;
+                value.value = ev.value;
+                header = &value.header;
+            }
+            else
+            {
+                gesture.header.size = sizeof (gesture);
+                gesture.header.time = 0;
+                gesture.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+                gesture.header.type = ev.type;
+                gesture.param_id = ev.paramId;
+                header = &gesture.header;
+            }
+
+            if (! out->try_push (out, header))
+            {
+                // The host's queue is full: keep this one for the next drain.
+                const std::lock_guard<std::mutex> lock (outLock);
+                --outRead;
+                return;
+            }
+        }
+    }
+
+    void ClapPlugin::readTransport (const clap_event_transport_t* transport, HostTransport& out)
+    {
+        out = HostTransport();
+        if (transport == nullptr)
+            return;
+
+        const uint32_t flags = transport->flags;
+        out.playing = (flags & CLAP_TRANSPORT_IS_PLAYING) != 0;
+        if ((flags & CLAP_TRANSPORT_HAS_TEMPO) != 0)
+            out.bpm = transport->tempo;
+        if ((flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE) != 0)
+        {
+            out.beats = static_cast<double> (transport->song_pos_beats) / CLAP_BEATTIME_FACTOR;
+            out.hasBeats = true;
+        }
     }
 
     //==============================================================================
@@ -224,12 +383,9 @@ namespace spiral303
         info->default_value = def.defaultValue;
 
         if (def.isChoice)
-            info->flags = CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM;
+            info->flags = CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM | CLAP_PARAM_IS_AUTOMATABLE;
         else
             info->flags = CLAP_PARAM_IS_AUTOMATABLE;
-
-        if (def.isBoolean)
-            info->flags |= CLAP_PARAM_IS_BYPASS;
 
         return true;
     }
@@ -308,21 +464,29 @@ namespace spiral303
     }
 
     void CLAP_ABI ClapPlugin::ext_params_flush (const clap_plugin* plugin, const clap_input_events_t* in,
-                                                const clap_output_events_t*)
+                                                const clap_output_events_t* out)
     {
-        if (in == nullptr)
+        auto* me = self (plugin);
+        if (me == nullptr)
             return;
 
-        const uint32_t count = in->size (in);
-        for (uint32_t i = 0; i < count; ++i)
+        if (in != nullptr && in->size != nullptr && in->get != nullptr)
         {
-            const auto* header = in->get (in, i);
-            if (header == nullptr || header->type != CLAP_EVENT_PARAM_VALUE)
-                continue;
+            const uint32_t count = in->size (in);
+            for (uint32_t i = 0; i < count; ++i)
+            {
+                const auto* header = in->get (in, i);
+                if (header == nullptr || header->type != CLAP_EVENT_PARAM_VALUE)
+                    continue;
 
-            const auto* event = reinterpret_cast<const clap_event_param_value_t*> (header);
-            self (plugin)->applyParamEvent (event);
+                const auto* event = reinterpret_cast<const clap_event_param_value_t*> (header);
+                me->applyParamEvent (event);
+            }
         }
+
+        // The host came for the changes the page made, so it is the moment to hand
+        // them over.
+        me->drainOutEvents (out);
     }
 
     void ClapPlugin::applyParamEvent (const clap_event_param_value_t* event)
@@ -337,6 +501,10 @@ namespace spiral303
                                  : juce::jlimit (def.minValue, def.maxValue, event->value);
 
         processor.setParamImmediate (index, static_cast<float> (value));
+
+        // The host moved something: the page's knob has to follow.
+        if (auto* web = webViewPtr())
+            web->noteParamFromHost (index);
     }
 
     //==============================================================================
@@ -381,8 +549,11 @@ namespace spiral303
         if (proc == nullptr || proc->audio_outputs_count == 0)
             return CLAP_PROCESS_ERROR;
 
-        // The events: notes, controllers and parameter changes.
+        // The events: notes, controllers, parameter changes and the transport.
         juce::MidiBuffer midi;
+
+        HostTransport transport;
+        readTransport (proc->transport, transport);
 
         const auto* events = proc->in_events;
         if (events != nullptr)
@@ -415,6 +586,16 @@ namespace spiral303
 
                     case CLAP_EVENT_PARAM_VALUE:
                         applyParamEvent (reinterpret_cast<const clap_event_param_value_t*> (header));
+                        break;
+
+                    case CLAP_EVENT_PARAM_GESTURE_BEGIN:
+                    case CLAP_EVENT_PARAM_GESTURE_END:
+                        // The host starts and stops an automation pass; the value
+                        // events in between speak for themselves.
+                        break;
+
+                    case CLAP_EVENT_TRANSPORT:
+                        readTransport (reinterpret_cast<const clap_event_transport_t*> (header), transport);
                         break;
 
                     case CLAP_EVENT_MIDI:
@@ -453,7 +634,12 @@ namespace spiral303
         for (int i = 0; i < numChannels && i < 2; ++i)
             channels[i] = output.data32[i];
 
-        processor.process (channels, numChannels, numSamples, midi);
+        transportRolling.store (transport.playing, std::memory_order_relaxed);
+
+        processor.process (channels, numChannels, numSamples, midi, &transport);
+
+        // Whatever the page changed since the last block goes to the host here.
+        drainOutEvents (proc->out_events);
 
         return CLAP_PROCESS_CONTINUE;
     }

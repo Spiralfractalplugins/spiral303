@@ -3,6 +3,7 @@
 #include <clap/clap.h>
 #include <clap/ext/draft/webview.h>
 
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -61,16 +62,35 @@ namespace spiral303
 
         //==============================================================================
         // Talking to the page.
+        //
+        // The page is a guest on a slow link: every message is a function call
+        // through the host and a JSON string, so what goes back is only what
+        // moved. The ranges, the choices and the version never change and travel
+        // with the full state, which the page asks for once, at hello.
 
         /** Sends the whole state: the parameters, the pattern, the gate, the
-            preset list and the response curve. */
+            preset, the response curve and the parts that never change. */
         void sendState();
 
-        /** Sends the meter readings. */
+        /** Everything a preset load moved, without the statics. */
+        void sendPresetEcho();
+
+        /** One parameter back to the page, with the curve when the filter moved. */
+        void sendParamEcho (int index, double value);
+
+        /** The pattern or the gate, and nothing else. */
+        void sendSeqEcho();
+        void sendGateEcho();
+
+        /** Sends the meter readings, and with them any parameter the host moved. */
         void sendMeter();
 
         /** Sends the list of the factory presets, for the preset menu. */
         void sendPresetList();
+
+        /** The host changed this parameter: the page's knob has to follow at the
+            next meter tick. */
+        void noteParamFromHost (int index);
 
         /** Tells the host which parameter the pointer is over, so that the host
             can offer its own menu and value entry on top of ours. */
@@ -79,6 +99,13 @@ namespace spiral303
     private:
         void send (const std::string& message);
         void handleMessage (const std::string& message);
+        void sendStateBody (bool withStatics);
+        std::string staticsBlock();
+        std::string curveBlock();
+
+        /** The host only comes for the queued changes when it processes, so if it
+            stands still it has to be asked. */
+        void askHostForFlush();
 
         ClapPlugin& plugin;
         const clap_host_t* host = nullptr;
@@ -87,5 +114,8 @@ namespace spiral303
         bool visible = false;
         bool created = false;
         std::string lastMessage;
+
+        std::mutex hostParamLock;
+        std::vector<int> hostParamDirty;
     };
 }

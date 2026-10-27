@@ -32,6 +32,7 @@ namespace spiral303
 
         sequenceCurrent = Sequence::decode (juce::String (defaultSequenceText()));
         sequenceAudio = sequenceCurrent;
+        tempoBpmValue.store (static_cast<double> (values[kBpm]), std::memory_order_relaxed);
     }
 
     void ProcessorCore::prepare (double newSampleRate)
@@ -74,6 +75,9 @@ namespace spiral303
 
         const std::lock_guard<std::mutex> lock (paramLock);
         values[index] = value;
+        // The pending copy has to follow, or the next block would restore the
+        // older value the interface left there and lose this one.
+        pendingValues[index] = value;
     }
 
     float ProcessorCore::paramValue (int index) const    {
@@ -82,6 +86,15 @@ namespace spiral303
 
         const std::lock_guard<std::mutex> lock (paramLock);
         return values[index];
+    }
+
+    float ProcessorCore::uiParamValue (int index) const
+    {
+        if (index < 0 || index >= kParamCount)
+            return 0.0f;
+
+        const std::lock_guard<std::mutex> lock (paramLock);
+        return pendingValues[index];
     }
 
     //==============================================================================
@@ -175,6 +188,7 @@ namespace spiral303
             }
         }
         pendingDirty.store (false, std::memory_order_release);
+        tempoBpmValue.store (static_cast<double> (state.values[kBpm]), std::memory_order_relaxed);
 
         if (! state.sequence.empty())
             setSequence (Sequence::decode (juce::String (state.sequence)));
@@ -203,7 +217,7 @@ namespace spiral303
         }
     }
 
-    Patch ProcessorCore::buildPatch (double rate) const
+    Patch ProcessorCore::buildPatch (double rate, double tempo) const
     {
         Patch patch;
         patch.sampleRate = (rate > 1.0 && std::isfinite (rate)) ? rate : 48000.0;
@@ -228,7 +242,7 @@ namespace spiral303
         patch.filterModel = static_cast<int> (juce::jlimit (0.0f, 7.0f, paramValue (kFilterType)));
 
         const int divIndex = static_cast<int> (juce::jlimit (0.0f, 5.0f, paramValue (kClockDiv)));
-        const double bpm = juce::jlimit (20.0, 400.0, static_cast<double> (paramValue (kBpm)));
+        const double bpm = juce::jlimit (20.0, 400.0, tempo);
         const double sixteenth = 60.0 / bpm / 4.0;
         patch.stepSamples = std::max (4.0, sixteenth * kClockDivisionSteps[static_cast<size_t> (divIndex)] * rate);
         patch.swingSamples = patch.stepSamples * 0.5 * paramValue (kSwing);
@@ -268,7 +282,8 @@ namespace spiral303
         return patch;
     }
 
-    void ProcessorCore::updateTransport (bool& running, double& bpm, double& beatPosition) const
+    void ProcessorCore::updateTransport (bool& running, double& bpm, double& beatPosition,
+                                         const HostTransport* transport)
     {
         bpm = static_cast<double> (paramValue (kBpm));
         beatPosition = -1.0;
@@ -276,9 +291,23 @@ namespace spiral303
         const bool hostSync = paramValue (kSyncMode) < 0.5f;
         if (hostSync)
         {
-            // CLAP 1.2 has no way to read the host's tempo or its transport, so
-            // the sequencer runs for as long as the host keeps calling process().
-            running = true;
+            // clap_process_t::transport carries the host's transport for this
+            // block: whether it rolls, its tempo, and the song position in
+            // beats. The PLAY button and the BPM knob are the manual mode's.
+            if (transport != nullptr)
+            {
+                if (transport->bpm > 20.0 && transport->bpm < 400.0)
+                    bpm = transport->bpm;
+                running = transport->playing;
+                if (transport->playing && transport->hasBeats)
+                    beatPosition = transport->beats;
+            }
+            else
+            {
+                // A free-running host names no transport, so the clock has
+                // nothing to hold on to.
+                running = false;
+            }
         }
         else
         {
@@ -291,11 +320,13 @@ namespace spiral303
             running = false;
             beatPosition = -1.0;
         }
+
+        tempoBpmValue.store (bpm, std::memory_order_relaxed);
     }
 
     //==============================================================================
     void ProcessorCore::process (float* const* outputChannels, int numChannels, int numSamples,
-                                 juce::MidiBuffer& midi)
+                                 juce::MidiBuffer& midi, const HostTransport* transport)
     {
         if (numChannels <= 0 || numSamples <= 0 || outputChannels == nullptr)
             return;
@@ -317,12 +348,14 @@ namespace spiral303
 
         const float gain = decibelsToGain (paramValue (kMasterGain));
 
-        Patch patch = buildPatch (sampleRate);
-        engine.setGateTimes (paramValue (kGateAtk), paramValue (kGateRel));
-
+        // The transport first: with Sync on Host its tempo is the clock's tempo,
+        // and the patch is built on it.
         bool running = true;
         double bpm = 130.0, beats = -1.0;
-        updateTransport (running, bpm, beats);
+        updateTransport (running, bpm, beats, transport);
+
+        Patch patch = buildPatch (sampleRate, bpm);
+        engine.setGateTimes (paramValue (kGateAtk), paramValue (kGateRel));
 
         sequencerRunningValue.store (running, std::memory_order_relaxed);
 

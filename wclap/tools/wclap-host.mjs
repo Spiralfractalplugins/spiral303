@@ -3,6 +3,12 @@
 // it needs nothing but node, so it runs in CI without a browser.
 //
 //   node wclap-host.mjs <module.wasm> [--host-half host-half.wasm]
+//                         [--webview] [--api] [--transport] [--render file]
+//
+// --webview asks the plugin for its interface and its handshake, --api walks the
+// extensions and the state, and --transport plays the host: it hands the plugin
+// a transport per block, watches the clock follow it, and reads the events the
+// plugin pushes back when the page moves a knob.
 //
 // The host follows the WebCLAP rules: the module exports `clap_entry` (an i32
 // global holding the address of the clap_plugin_entry), a growable function
@@ -11,7 +17,9 @@
 //
 // A WebAssembly table only holds WebAssembly functions, so the callbacks the
 // plugin needs (event list, host extensions) come from a tiny companion module,
-// the "host half", whose exports are copied into the plugin's table.
+// the "host half", whose exports are copied into the plugin's table. Where a
+// check has to see inside a callback, the slot holds a trampoline that calls
+// back into JS first.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -161,40 +169,60 @@ const CLAP_HOST_SIZE = 48;
 const CLAP_PROCESS_SIZE = 40;
 const CLAP_AUDIO_BUFFER_SIZE = 24;
 const CLAP_INPUT_EVENTS_SIZE = 12;
-const CLAP_EVENT_NOTE_SIZE = 36;
+const CLAP_OUTPUT_EVENTS_SIZE = 8;
+const CLAP_EVENT_NOTE_SIZE = 40;
 const CLAP_EVENT_PARAM_VALUE_SIZE = 48;
+const CLAP_EVENT_TRANSPORT_SIZE = 104;
 const CLAP_PARAM_INFO_SIZE = 1320;
 
 const CLAP_EVENT_NOTE_ON = 0;
 const CLAP_EVENT_NOTE_OFF = 1;
 const CLAP_EVENT_PARAM_VALUE = 5;
+const CLAP_EVENT_PARAM_GESTURE_BEGIN = 7;
+const CLAP_EVENT_PARAM_GESTURE_END = 8;
+const CLAP_EVENT_TRANSPORT = 9;
 
-/** A nine-byte-shaped wasm function that forwards to a JS one.
+const CLAP_TRANSPORT_HAS_TEMPO = 1 << 0;
+const CLAP_TRANSPORT_HAS_BEATS_TIMELINE = 1 << 1;
+const CLAP_TRANSPORT_IS_PLAYING = 1 << 4;
+
+// clap_beattime counts beats with 2^31 to the beat (clap/fixedpoint.h).
+const CLAP_BEATTIME_FACTOR = 2 ** 31;
+
+/** A wasm function that forwards to a JS one.
  *
  *  The plugin reaches the host callbacks through call_indirect, and a WebAssembly
  *  table accepts only WebAssembly functions: a JS closure cannot be put there.
- *  To watch every message the plugin sends (a hello is answered with two, and the
- *  payload of the first one is freed before the test reads anything), the callback
- *  slot holds this trampoline, whose body is `call $js_send` of the imported
- *  function. Types: (i32,i32,i32) -> i32, exactly clap_webview_t::send.
+ *  A slot that has to watch what goes through it therefore holds this trampoline,
+ *  whose body reads its arguments and calls the imported function. All the
+ *  callbacks here take i32s only; `result` is 'i32' or 'void', the types being
+ *  clap_webview_t::send (i32,i32,i32)->i32, clap_output_events_t::try_push
+ *  (i32,i32)->i32 and clap_host_params_t::request_flush (i32)->void.
  */
-function makeTrampoline (moduleName, funcName, onCall) {
+function makeTrampoline (moduleName, funcName, arity, result, onCall) {
   const modName = [...Buffer.from (moduleName, 'utf8')];
   const fnName = [...Buffer.from (funcName, 'utf8')];
+  const i32 = 0x7f;
+  const hasResult = result !== 'void';
+  // functype: the parameters, then whether there is a result and what it is.
+  const type = [0x60, arity, ...Array.from ({ length: arity }, () => i32),
+                hasResult ? 1 : 0, ...(hasResult ? [i32] : [])];
+  // body: no locals, the arguments in order, the call, end.
+  const code = [0x00, ...Array.from ({ length: arity }, (_, i) => [0x20, i]).flat (), 0x10, 0x00, 0x0b];
   const mod = new WebAssembly.Module (new Uint8Array ([
     // magic, version
     0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
-    // type: (i32,i32,i32) -> i32
-    0x01, 0x08, 0x01, 0x60, 0x03, 0x7f, 0x7f, 0x7f, 0x01, 0x7f,
-    // import: the JS callback
-    0x02, 0x05 + modName.length + fnName.length, 0x01,
+    // one type
+    0x01, type.length + 1, 0x01, ...type,
+    // import: the JS callback of that type
+    0x02, 5 + modName.length + fnName.length, 0x01,
     modName.length, ...modName, fnName.length, ...fnName, 0x00, 0x00,
     // one function of that type
     0x03, 0x02, 0x01, 0x00,
     // export: the wasm function the table can hold
-    0x07, 0x04 + fnName.length, 0x01, fnName.length, ...fnName, 0x00, 0x00,
-    // body: local.get 0..2, call $js, end
-    0x0a, 0x0c, 0x01, 0x0a, 0x00, 0x20, 0x00, 0x20, 0x01, 0x20, 0x02, 0x10, 0x00, 0x0b,
+    0x07, 4 + fnName.length, 0x01, fnName.length, ...fnName, 0x00, 0x00,
+    // code: one function of that body
+    0x0a, code.length + 2, 0x01, code.length, ...code,
   ]));
   const instance = new WebAssembly.Instance (mod, { [moduleName]: { [funcName]: onCall } });
   return { instance, fn: instance.exports[funcName] };
@@ -219,6 +247,7 @@ export class WclapHost {
       webviewSend: base + 6,
       streamWrite: base + 7,
       paramHoveredUpdate: base + 8,
+      outTryPush: base + 9,
     };
 
     const he = hostHalf.exports;
@@ -235,16 +264,85 @@ export class WclapHost {
     // reuses one buffer for both. So the copy has to be taken during the call:
     // the slot holds a wasm trampoline that calls back into JS.
     this.webviewLog = [];
-    this.webviewTrampoline = makeTrampoline ('env', 'webview_send', (hostPtr, buffer, size) => {
-      if (this.webviewLog.length < 64)
+    this.webviewTrampoline = makeTrampoline ('env', 'webview_send', 3, 'i32', (hostPtr, buffer, size) => {
+      if (this.webviewLog.length < 512)
         this.webviewLog.push (Buffer.from (new Uint8Array (plugin.buffer, buffer, size)).toString ('utf8'));
       return he.host_webview_send (hostPtr, buffer, size);
     });
     this.table.set (this.slots.webviewSend, this.webviewTrampoline.fn);
 
+    // The same trick for the two callbacks the checks read: a parameter the page
+    // moved reaches the host as an event in clap_process_t::out_events, and the
+    // host is asked to come for it when the transport is stopped.
+    this.pushedEvents = [];
+    this.flushRequests = 0;
+
+    const recordPush = (listPtr, eventPtr) => {
+      const type = plugin.u32 (eventPtr + 10) & 0xffff;
+      const paramId = plugin.u32 (eventPtr + 16) >>> 0;
+      if (this.pushedEvents.length < 1024) {
+        this.pushedEvents.push ({ type, paramId,
+                                  value: type === CLAP_EVENT_PARAM_VALUE ? plugin.f64 (eventPtr + 40) : 0 });
+      }
+      // The host took it. A real host may run out of room, and the plugin then
+      // keeps the event for the next round; this one always has space.
+      return 1;
+    };
+    this.outTryPushTrampoline = makeTrampoline ('env', 'out_events_try_push', 2, 'i32', recordPush);
+    this.table.set (this.slots.outTryPush, this.outTryPushTrampoline.fn);
+
+    this.requestFlushTrampoline = makeTrampoline ('env', 'host_request_flush', 1, 'void', (hostPtr) => {
+      ++this.flushRequests;
+      he.host_params_request_flush (hostPtr);
+    });
+    this.table.set (this.slots.paramsRequestFlush, this.requestFlushTrampoline.fn);
+
+    // clap_output_events_t: the reserved pointer, then try_push as a table index.
+    this.outEventsPtr = plugin.alloc (CLAP_OUTPUT_EVENTS_SIZE);
+    plugin.writeU32 (this.outEventsPtr + 0, 0);
+    plugin.writeU32 (this.outEventsPtr + 4, this.slots.outTryPush);
+
+    // clap_event_transport_t, filled by the host before every block that names
+    // one; the plugin reads the flags, the tempo and the position out of it.
+    this.transportPtr = plugin.alloc (CLAP_EVENT_TRANSPORT_SIZE);
+    for (let i = 0; i < CLAP_EVENT_TRANSPORT_SIZE; i += 4)
+      plugin.writeU32 (this.transportPtr + i, 0);
+    plugin.writeU32 (this.transportPtr + 0, CLAP_EVENT_TRANSPORT_SIZE);
+    plugin.writeU32 (this.transportPtr + 10, CLAP_EVENT_TRANSPORT);   // type, with flags u32 at +12 left 0
+
     this.hostPtr = plugin.alloc (CLAP_HOST_SIZE);
     this.setupHostStruct ();
     this.setupExtensions ();
+  }
+
+  /** Writes this block's transport and returns its address, or 0 when the host
+      is free running and names none. `playing` is the button, `tempo` the BPM
+      and `beats` the song position in beats. */
+  makeTransport ({ playing = false, tempo, beats } = {}) {
+    const named = playing || tempo !== undefined || beats !== undefined;
+    if (! named)
+      return 0;
+
+    const m = this.plugin;
+    const at = this.transportPtr;
+    let flags = 0;
+    if (tempo !== undefined) flags |= CLAP_TRANSPORT_HAS_TEMPO;
+    if (beats !== undefined) flags |= CLAP_TRANSPORT_HAS_BEATS_TIMELINE;
+    if (playing) flags |= CLAP_TRANSPORT_IS_PLAYING;
+
+    m.writeU32 (at + 16, flags);
+    m.writeU64 (at + 24, BigInt (Math.round ((beats ?? 0) * CLAP_BEATTIME_FACTOR)));
+    m.writeU64 (at + 32, BigInt (Math.round ((beats ?? 0) * 60000000 / (tempo ?? 120))));
+    m.writeF64 (at + 40, tempo ?? 0);
+    return at;
+  }
+
+  /** Everything the plugin pushed as an event since the last reset, as
+      { type, paramId, value }. */
+  takenEvents () {
+    const events = this.pushedEvents.slice ();
+    this.pushedEvents.length = 0;
+    return events;
   }
 
   setupHostStruct () {
@@ -398,8 +496,10 @@ export class WclapPlugin {
   destroy () { this.call (12, this.ptr); }
 
   /** Runs one audio block; returns the peak of the first output port.
-      `notes` are MIDI notes, `paramEvents` are parameter changes. */
-  process (frames, notes = [], paramEvents = []) {
+      `notes` are MIDI notes, `paramEvents` are parameter changes, and `host`
+      is what the host's transport says about the block: { playing, tempo,
+      beats }, or nothing at all when the host is free running. */
+  process (frames, notes = [], paramEvents = [], host = {}) {
     const m = this.plugin;
     const he = this.host.hostHalf.exports;
 
@@ -429,7 +529,7 @@ export class WclapPlugin {
         m.writeI32 (at + 16, note.id ?? 1);           // note_id
         m.writeI32 (at + 20, 0);                     // port_index + channel
         m.writeI32 (at + 24, note.key ?? 60);        // key
-        m.writeF64 (at + 28, note.velocity ?? 1.0);
+        m.writeF64 (at + 32, note.velocity ?? 1.0);  // velocity, eight-aligned
       } else {
         const param = entry.param;
         m.writeU32 (at + 0, CLAP_EVENT_PARAM_VALUE_SIZE);
@@ -457,6 +557,10 @@ export class WclapPlugin {
     const outDataPtr = m.alloc (8);
     const leftPtr = m.alloc (frames * 4);
     const rightPtr = m.alloc (frames * 4);
+    // A host hands over an empty buffer: the plugin is free to add to it rather
+    // than write, so the leftover of malloc would look like sound.
+    new Uint8Array (m.buffer, leftPtr, frames * 4).fill (0);
+    new Uint8Array (m.buffer, rightPtr, frames * 4).fill (0);
     m.writeU32 (outDataPtr + 0, leftPtr);
     m.writeU32 (outDataPtr + 4, rightPtr);
     m.writeU32 (outBufPtr + 0, outDataPtr);
@@ -468,13 +572,16 @@ export class WclapPlugin {
     const processPtr = m.alloc (CLAP_PROCESS_SIZE);
     m.writeU64 (processPtr + 0, 0n);
     m.writeU32 (processPtr + 8, frames);
-    m.writeU32 (processPtr + 12, 0);
+    m.writeU32 (processPtr + 12, this.host.makeTransport (host));   // transport, or none
     m.writeU32 (processPtr + 16, 0);
     m.writeU32 (processPtr + 20, outBufPtr);
     m.writeU32 (processPtr + 24, 0);
     m.writeU32 (processPtr + 28, 1);
     m.writeU32 (processPtr + 32, eventsPtr);   // in_events
-    m.writeU32 (processPtr + 36, 0);           // out_events
+    m.writeU32 (processPtr + 36, this.host.outEventsPtr);   // out_events
+
+    // What the plugin hands back during this call, and nothing from before.
+    this.host.pushedEvents.length = 0;
 
     const status = this.call (36, this.ptr, processPtr);
 
@@ -503,6 +610,32 @@ export class WclapPlugin {
     const size = he.host_last_message_size ();
     if (!ptr || !size) return '';
     return Buffer.from (new Uint8Array (this.plugin.buffer, ptr, size)).toString ('utf8');
+  }
+
+  /** Speaks to the interface the way the page does and returns every message the
+      answer produced, oldest first. The hello is answered twice, with the bank
+      list and then the state. */
+  pageMessages (message) {
+    const m = this.plugin;
+    const ext = this.extension ('clap.webview/3');
+    if (!ext) return [];
+
+    const before = this.host.webviewLog.length;
+    const text = Buffer.from (JSON.stringify (message), 'utf8');
+    const ptr = m.writeBytes (m.alloc (text.length), text);
+    this.callExt (ext, 8, this.ptr, ptr, text.length);
+    return this.host.webviewLog.slice (before).map ((json) => JSON.parse (json));
+  }
+
+  /** The last message of the answer, which is what the page draws from. */
+  pageMessage (message) {
+    const sent = this.pageMessages (message);
+    return sent.length > 0 ? sent[sent.length - 1] : null;
+  }
+
+  /** The events the plugin handed over during the block that just ran. */
+  pushedEvents () {
+    return this.host.takenEvents ();
   }
 
   //==============================================================================
@@ -553,6 +686,15 @@ export class WclapPlugin {
     const valuePtr = m.alloc (8);
     if (!this.callExt (ext, 8, this.ptr, param.id, valuePtr)) return 0;
     return m.f64 (valuePtr);
+  }
+
+  /** clap_plugin_params_t::flush: the host comes for the changes the page made. */
+  flushParams () {
+    const ext = this.extension ('clap.params');
+    if (!ext) return [];
+    this.host.pushedEvents.length = 0;
+    this.callExt (ext, 20, this.ptr, 0, this.host.outEventsPtr);
+    return this.host.takenEvents ();
   }
 }
 
@@ -610,7 +752,8 @@ async function main () {
   const args = process.argv.slice (2);
   const wasmPath = args[0];
   if (!wasmPath) {
-    console.error ('usage: node wclap-host.mjs <module.wasm> [--host-half host-half.wasm] [--render file]');
+    console.error ('usage: node wclap-host.mjs <module.wasm> [--host-half host-half.wasm]'
+                   + ' [--webview] [--api] [--transport] [--render file]');
     process.exit (2);
   }
   const halfIndex = args.indexOf ('--host-half');
@@ -622,6 +765,7 @@ async function main () {
   const api = args.includes ('--api');
   const stateIndex = args.indexOf ('--state-out');
   const stateOut = stateIndex >= 0 ? args[stateIndex + 1] : null;
+  const followMode = args.includes ('--transport');
 
   const plugin = WasmModule.load (wasmPath);
   const hostHalf = WasmModule.load (halfPath);
@@ -641,7 +785,8 @@ async function main () {
 
   pluginInstance.init ();
   const frames = 512;
-  pluginInstance.activate (48000, 1, frames);
+  const sampleRate = 48000;
+  pluginInstance.activate (sampleRate, 1, frames);
   pluginInstance.startProcessing ();
 
   if (webview) {
@@ -780,7 +925,7 @@ async function main () {
     second.init ();
     second.activate (48000, 1, 512);
     second.startProcessing ();
-    // The sequencer needs a step to reach the first note, so a few blocks.
+    // The note is live MIDI, not the sequencer: the host here names no transport.
     let secondPeak = 0;
     for (let i = 0; i < 40; ++i) {
       const notes = i === 0 ? [{ key: 60, on: true, time: 0 }] : [];
@@ -806,6 +951,164 @@ async function main () {
       && unknown === 0 && secondPeak > 0 && Number.isFinite (soakPeak) && soakPeak > 0;
     console.log (ok ? 'OK: the API is complete' : 'FAIL: the API is incomplete');
     process.exit (ok ? 0 : 1);
+  }
+
+  if (followMode) {
+    // What the host sees: the clock comes from the transport of the block, and a
+    // knob the page moved arrives as events in the host's queue.
+    const checks = [];
+    const check = (label, passed, detail) => checks.push ([label, passed, detail]);
+
+    const sync = pluginInstance.paramByName ('Sync');
+    const bpm = pluginInstance.paramByName ('BPM');
+    const play = pluginInstance.paramByName ('Play');
+    const cutoff = pluginInstance.paramByName ('Cutoff');
+    const res = pluginInstance.paramByName ('Res');
+    if (!sync || !bpm || !play || !cutoff || !res)
+      throw new Error ('the plugin is missing a parameter the checks need');
+
+    const meter = () => pluginInstance.pageMessage ({ t: 'meter' }) || {};
+
+    // Runs the host for a while. `named` is whether it names a transport at all,
+    // the way a free running host does not; the position then moves the way a
+    // real host moves it.
+    let beat = 0;
+    const run = (blocks, { named = true, playing = true, tempo = 150 } = {}) => {
+      let peak = 0;
+      for (let i = 0; i < blocks; ++i) {
+        const transport = named ? { playing, tempo, beats: beat } : {};
+        peak = Math.max (peak, pluginInstance.process (frames, [], [], transport).peak);
+        if (named) beat += frames / sampleRate * tempo / 60;
+      }
+      return peak;
+    };
+    const span = (param, part) => param.min + (param.max - param.min) * part;
+
+    // Sync = Host is the default; saying it here keeps the checks below honest.
+    pluginInstance.process (frames, [], [{ id: sync.id, value: 0 }]);
+
+    // --- the transport is the clock -------------------------------------------
+    const freePeak = run (48, { named: false });
+    const freeMeter = meter ();
+    check ('a host that names no transport keeps the line silent',
+           freePeak < 1e-5 && freeMeter.running === false,
+           'peak ' + freePeak.toExponential (1) + ', running ' + freeMeter.running);
+
+    const stoppedPeak = run (48, { playing: false });
+    const stoppedMeter = meter ();
+    check ('a transport that is not playing keeps the line silent',
+           stoppedPeak < 1e-5 && stoppedMeter.running === false,
+           'peak ' + stoppedPeak.toExponential (1) + ', running ' + stoppedMeter.running);
+
+    // The knob says 90, the transport says 150: under Sync = Host the transport
+    // is the tempo, and the readout the page polls says so.
+    pluginInstance.process (frames, [], [{ id: bpm.id, value: 90 }]);
+    const playPeak = run (96);
+    const playMeter = meter ();
+    check ('the playing flag starts the sequencer',
+           playPeak > 0.001 && playMeter.running === true,
+           'peak ' + playPeak.toFixed (4) + ', running ' + playMeter.running);
+    check ('the tempo comes from the transport, not the knob',
+           Math.abs (playMeter.tempo - 150) < 0.01, playMeter.tempo);
+
+    // The step is the host's position, not a counter of blocks: forward, then a
+    // jump, then a loop back over the bar.
+    beat = 0;
+    run (2);
+    const top = meter ().step;
+    run (64);
+    const up = meter ().step;
+    beat = 40;
+    run (1);
+    const jumped = meter ().step;
+    beat = 0.5;
+    run (1);
+    const looped = meter ().step;
+    check ('the step advances with the host position', up > top, 'step ' + top + ' then ' + up);
+    check ('a jump or a loop moves the pattern with the host',
+           jumped < up && looped < up,
+           'step ' + up + ', after the jump ' + jumped + ', after the loop ' + looped);
+
+    run (8, { playing: false });
+    const stopped = meter ();
+    check ('the transport stopping stops the line',
+           stopped.running === false && stopped.step === -1,
+           'running ' + stopped.running + ', step ' + stopped.step);
+
+    // Sync = Manual: here the Play button and the BPM knob are the transport, and
+    // a host that plays does not overrule them.
+    pluginInstance.process (frames, [], [{ id: sync.id, value: 1 }, { id: play.id, value: 0 }]);
+    const manualStopped = run (24, { playing: true });
+    const manualStoppedMeter = meter ();
+    check ('in Manual a playing host does not start it',
+           manualStopped < 1e-5 && manualStoppedMeter.running === false,
+           'peak ' + manualStopped.toExponential (1) + ', running ' + manualStoppedMeter.running);
+
+    pluginInstance.process (frames, [], [{ id: play.id, value: 1 }]);
+    beat = 0;
+    const manualPeak = run (96, { playing: false });
+    const manualMeter = meter ();
+    check ('in Manual the Play button starts it',
+           manualPeak > 0.001 && manualMeter.running === true, 'peak ' + manualPeak.toFixed (4));
+    check ('in Manual the BPM knob is the tempo', Math.abs (manualMeter.tempo - 90) < 0.01,
+           manualMeter.tempo);
+
+    // --- what the host hears when the page moves a knob -----------------------
+    pluginInstance.process (frames, [], [{ id: sync.id, value: 0 }]);
+    run (4, { playing: false });
+
+    const askedBefore = host.flushRequests;
+    pluginInstance.pageMessage ({ t: 'param', id: 'Cutoff', v: span (cutoff, 0.3) });
+    check ('a stopped host is asked to come for the page change',
+           host.flushRequests > askedBefore, host.flushRequests - askedBefore + ' request(s)');
+
+    const single = pluginInstance.flushParams ();
+    const kindOf = (event) => ({ 5: 'value', 7: 'gesture begin', 8: 'gesture end' })[event.type] || event.type;
+    check ('a bare change comes as a gesture around its value',
+           single.length === 3 && single[0].type === CLAP_EVENT_PARAM_GESTURE_BEGIN
+           && single[1].type === CLAP_EVENT_PARAM_VALUE && single[2].type === CLAP_EVENT_PARAM_GESTURE_END
+           && single.every ((event) => event.paramId === cutoff.id),
+           single.map (kindOf).join (' -> '));
+    check ('the host gets the value the page set',
+           Math.abs ((single[1] || {}).value - span (cutoff, 0.3)) < 1e-6, (single[1] || {}).value);
+    check ('the queue is empty once the host has taken it',
+           pluginInstance.flushParams ().length === 0);
+
+    // A hand movement: the page opens the gesture as the pointer goes down and
+    // closes it as it comes up, so the whole drag is one pass of automation.
+    pluginInstance.pageMessage ({ t: 'gesture', id: 'Res', begin: true });
+    pluginInstance.pageMessage ({ t: 'param', id: 'Res', v: span (res, 0.4) });
+    pluginInstance.pageMessage ({ t: 'param', id: 'Res', v: span (res, 0.5) });
+    pluginInstance.pageMessage ({ t: 'gesture', id: 'Res', begin: false });
+    const drag = pluginInstance.flushParams ();
+    check ('a drag is one gesture with its values inside',
+           drag.length === 4 && drag[0].type === CLAP_EVENT_PARAM_GESTURE_BEGIN
+           && drag[1].type === CLAP_EVENT_PARAM_VALUE && drag[2].type === CLAP_EVENT_PARAM_VALUE
+           && drag[3].type === CLAP_EVENT_PARAM_GESTURE_END
+           && drag.every ((event) => event.paramId === res.id),
+           drag.map (kindOf).join (' -> '));
+
+    // While the host rolls it takes the queue with the block it renders, so the
+    // plugin does not interrupt it with a request.
+    run (2);
+    const askedWhileRolling = host.flushRequests;
+    pluginInstance.pageMessage ({ t: 'param', id: 'Res', v: span (res, 0.6) });
+    check ('a rolling host is not asked to flush', host.flushRequests === askedWhileRolling);
+
+    pluginInstance.process (frames, [], [], { playing: true, tempo: 150, beats: beat });
+    beat += frames / sampleRate * 150 / 60;
+    const inBlock = pluginInstance.pushedEvents ();
+    check ('a rolling host takes the change with its block',
+           inBlock.some ((event) => event.type === CLAP_EVENT_PARAM_VALUE && event.paramId === res.id),
+           inBlock.map (kindOf).join (' -> '));
+
+    const failed = checks.filter (([, passed]) => ! passed);
+    for (const [label, passed, detail] of checks)
+      console.log ((passed ? 'PASS  ' : 'FAIL  ') + label + (detail === undefined ? '' : ' [' + detail + ']'));
+    console.log (failed.length + ' of ' + checks.length + ' checks did not hold');
+    console.log (failed.length === 0 ? 'OK: the host sees the transport and the page'
+                                     : 'FAIL: the host does not see the transport or the page');
+    process.exit (failed.length === 0 ? 0 : 1);
   }
 
   if (renderPath) {
@@ -836,11 +1139,13 @@ async function main () {
   let silentPeak = 0;
   let soundingPeak = 0;
 
-  // A block with no note: the sequencer may still be running.
+  // A block with no note: the host named no transport and Sync is on Host, so
+  // the line stands still and this is silence.
   for (let i = 0; i < 4; ++i)
     silentPeak = Math.max (silentPeak, pluginInstance.process (frames, []).peak);
 
-  // Then a note, and let the pattern run.
+  // Then a note: without the sequencer the plugin is a plain instrument, and the
+  // voice rings as long as its envelope says so.
   for (let i = 0; i < 96; ++i)
   {
     const notes = i === 0 ? [{ key: 60, on: true, time: 0 }] : [];

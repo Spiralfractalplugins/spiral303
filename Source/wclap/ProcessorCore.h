@@ -20,6 +20,17 @@
 
 namespace spiral303
 {
+    /** What the host's transport says about the block being rendered. The
+        WebAssembly build reads it out of clap_process_t::transport; a host that
+        leaves it null is free running and has nothing for us to follow. */
+    struct HostTransport
+    {
+        bool playing = false;
+        double bpm = 0.0;       // 0 when the host did not name a tempo
+        double beats = 0.0;     // the song position, in beats
+        bool hasBeats = false;
+    };
+
     /** The plugin without a host around it: the parameters, the pattern, the
         clock and the audio path. This is the native processor's logic without
         JUCE's parameter tree, so that the WebAssembly build behaves the same. */
@@ -41,6 +52,11 @@ namespace spiral303
             at the start of the block. */
         void setParamImmediate (int index, float value);
         float paramValue (int index) const;
+
+        /** What the interface shows: the value the last change asked for, before
+            it reaches the audio path. The page must read its knob back at once,
+            and the audio path catches up at the next block anyway. */
+        float uiParamValue (int index) const;
 
         //==============================================================================
         // The pattern and the gate.
@@ -65,9 +81,10 @@ namespace spiral303
         // Audio.
 
         /** Renders one block into the given channel pointers. The MIDI buffer
-            carries the incoming notes and controllers. */
+            carries the incoming notes and controllers; the transport, when the
+            host named one, is what Sync = Host follows. */
         void process (float* const* outputChannels, int numChannels, int numSamples,
-                      juce::MidiBuffer& midi);
+                      juce::MidiBuffer& midi, const HostTransport* transport = nullptr);
 
         //==============================================================================
         // What the interface shows.
@@ -80,9 +97,15 @@ namespace spiral303
         bool sequencerRunning() const { return sequencerRunningValue.load (std::memory_order_relaxed); }
         bool gateActive() const { return paramValue (kGateOn) >= 0.5f; }
 
+        /** The tempo the clock actually ran at: the host's in Sync = Host, the
+            BPM knob's in Sync = Manual. The header readout shows this, not the
+            knob, the way the native editor does. */
+        double tempoBpm() const { return tempoBpmValue.load (std::memory_order_relaxed); }
+
     private:
-        Patch buildPatch (double sampleRate) const;
-        void updateTransport (bool& running, double& bpm, double& beatPosition) const;
+        Patch buildPatch (double sampleRate, double tempoBpm) const;
+        void updateTransport (bool& running, double& bpm, double& beatPosition,
+                              const HostTransport* transport);
         void syncCustomStateAudioThread();
 
         mutable std::mutex paramLock;
@@ -113,6 +136,7 @@ namespace spiral303
         std::atomic<int> playingStepValue { -1 };
         std::atomic<int> playingGateSectorValue { -1 };
         std::atomic<bool> sequencerRunningValue { false };
+        std::atomic<double> tempoBpmValue { 130.0 };
 
         double sampleRate = 48000.0;
     };
