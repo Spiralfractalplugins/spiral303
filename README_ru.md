@@ -119,7 +119,7 @@ docs/WEBASSEMBLY.md        — сборка и проверки WebAssembly-ве
 ## Версии
 Версия задаётся один раз — `project(Spiral303 VERSION ...)` в `CMakeLists.txt`
 и оттуда же попадает в VST3/AU-манифест, окно About и бинарь
-тестов. Текущая — 0.37.0. Хронология — в [CHANGELOG.md](CHANGELOG.md).
+тестов. Текущая — 0.37.1. Хронология — в [CHANGELOG.md](CHANGELOG.md).
 
 ## Лицензия
 GPL-3.0-only — см. [LICENSE](LICENSE). JUCE (vendor/JUCE) распространяется
