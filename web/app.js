@@ -19,16 +19,17 @@ const DESIGN_HEIGHT = 780;
 const SKINS = [
   { name: 'Dark',
     background: '#181b20', panel: '#22262d', panelOutline: '#333a44',
-    text: '#c8d0dc', textDim: '#7a8492', accent: '#e8a03c', accentAlt: '#4ac8e8',
-    pitch: '#b06ae8', gate: '#e8564a', gridLine: '#2c313a', gridBeat: '#3d4451',
+    text: '#c8d0dc', textDim: '#838d9a', accent: '#e8a03c', accentAlt: '#4ac8e8',
+    pitch: '#b26de8', gate: '#e8564a', gridLine: '#2c313a', gridBeat: '#3d4451',
     knobTrack: '#3a4150', playhead: '#f2f5f9',
     faceBase: '#181b20', faceHi: '#2a2f37', faceLo: '#0e1115',
     bevelHi: '#4a5260', bevelLo: '#0d1013', shadow: '#000000', spec: '#ffffff',
     bodyTop: '#464e5c', bodyBottom: '#1b1e24', skirt: '#1b1e24', washer: '#8b93a0',
     pointer: '#c8d0dc', screw: '#3a4150', screwHi: '#5b6472', ink: '#7a8492',
+    faceInk: '#c8d0dc',
     grain: '#2c313a', ledOn: '#e8564a', ledOff: '#3a4150', hazard: '#e8a03c',
     meterGreen: '#56d384', meterAmber: '#f0c040', meterRed: '#f04040',
-    chip: '#181b20', chipText: '#7a8492',
+    chip: '#181b20', chipText: '#838d9a',
     finish: 'plastic', panelMaterial: 'flat', faceMaterial: 'flat',
     knurl: 0, grainLines: 0, woodLines: 0, screws: 0,
     engraved: false, glowing: false, corner: 6 },
@@ -41,6 +42,7 @@ const SKINS = [
     bevelHi: '#5f88ad', bevelLo: '#030609', shadow: '#000000', spec: '#eaf7ff',
     bodyTop: '#2b3b4e', bodyBottom: '#0c141d', skirt: '#16202b', washer: '#38c8ff',
     pointer: '#9ff0ff', screw: '#27455f', screwHi: '#63a2c8', ink: '#bfe6ff',
+    faceInk: '#d9f2ff',
     grain: '#16222f', ledOn: '#4dff9e', ledOff: '#1c3242', hazard: '#ffc21f',
     meterGreen: '#3dffb0', meterAmber: '#ffd24d', meterRed: '#ff4d3a',
     chip: '#0b1420', chipText: '#7fa0bd',
@@ -49,16 +51,17 @@ const SKINS = [
     engraved: false, glowing: true, corner: 5 },
   { name: 'Wood',
     background: '#4a2c1a', panel: '#ada393', panelOutline: '#7a7161',
-    text: '#241f16', textDim: '#544b3c', accent: '#8a3b0e', accentAlt: '#1c4f66',
+    text: '#241f16', textDim: '#413a2f', accent: '#632a0a', accentAlt: '#173f52',
     pitch: '#4a2674', gate: '#a11f14', gridLine: '#9d9382', gridBeat: '#7e7463',
     knobTrack: '#8c8271', playhead: '#1d1710',
     faceBase: '#5b3722', faceHi: '#7d5233', faceLo: '#2e1a0e',
     bevelHi: '#d8d0c0', bevelLo: '#453f34', shadow: '#20140a', spec: '#fff6e4',
     bodyTop: '#2a2622', bodyBottom: '#100e0c', skirt: '#e6dcc4', washer: '#c9c3b4',
     pointer: '#f2ead6', screw: '#8b8272', screwHi: '#d5cdba', ink: '#2b2519',
+    faceInk: '#f0e4c8',
     grain: '#3a2012', ledOn: '#b3230f', ledOff: '#8c8271', hazard: '#d6a512',
-    meterGreen: '#3f7d4e', meterAmber: '#c08a2a', meterRed: '#a11f14',
-    chip: '#c9bda6', chipText: '#544b3c',
+    meterGreen: '#6fbf7a', meterAmber: '#e0a83c', meterRed: '#e06a4a',
+    chip: '#c9bda6', chipText: '#413a2f',
     finish: 'phenolic', panelMaterial: 'brushed', faceMaterial: 'wood',
     knurl: 0, grainLines: 26, woodLines: 26, screws: 0,
     engraved: true, glowing: false, corner: 4 },
@@ -71,8 +74,9 @@ const SKINS = [
     bevelHi: '#aeb8c0', bevelLo: '#12161a', shadow: '#0c0f12', spec: '#fdfeff',
     bodyTop: '#838c95', bodyBottom: '#2e343a', skirt: '#454d55', washer: '#b9c2ca',
     pointer: '#f3f6f8', screw: '#6d767f', screwHi: '#c4ccd3', ink: '#e6ebf0',
+    faceInk: '#e2e9f0',
     grain: '#8d979f', ledOn: '#5be07a', ledOff: '#39414a', hazard: '#d8b41f',
-    meterGreen: '#5be07a', meterAmber: '#e8b84a', meterRed: '#d2564a',
+    meterGreen: '#5be07a', meterAmber: '#e8b84a', meterRed: '#e87050',
     chip: '#171c20', chipText: '#9fa9b2',
     finish: 'metal', panelMaterial: 'brushed', faceMaterial: 'brushed',
     knurl: 32, grainLines: 34, woodLines: 0, screws: 4,
@@ -1384,8 +1388,11 @@ function canvasArc (cx, cy, radius, from, to, width, colour) {
 
 /** The title line and the small captions the editor paints itself. */
 function drawTitles () {
+  // The wordmark is printed on the cabinet itself, so it takes the ink the
+  // cabinet is printed with: dark plastic and glass get the light text colour,
+  // walnut gets the cream a silkscreen on a wooden case would use.
   text ("Spiralfractal's Spiral303  v" + (state.version || ''),
-        HEADER.version, 14, skin.text, { align: 'left', bold: true });
+        HEADER.version, 14, skin.faceInk, { align: 'left', bold: true });
 
   for (const caption of CAPTIONS)
     text (caption.text, caption.rect, 9, skin.textDim, { align: 'left', bold: true });
@@ -1686,9 +1693,15 @@ function drawHeader () {
 
   // The tempo: the readout the timer writes, with the accent for manual play.
   // Under Sync = Host the clock follows the DAW, so the number is the host's,
-  // not the knob's — the native label prints the same thing.
+  // not the knob's — the native label prints the same thing. It stands in a
+  // window of its own, like the preset field beside it: the strip along the top
+  // of a cabinet is the one surface no skin's text colour is chosen against.
   const manual = manualSync();
   const shown = manual ? (state.params.BPM || 0) : (state.tempo || state.params.BPM || 0);
+  fillRR (HEADER.tempo.x, HEADER.tempo.y, HEADER.tempo.w, HEADER.tempo.h,
+          skin.corner, skin.panel);
+  strokeRR (HEADER.tempo.x + 0.5, HEADER.tempo.y + 0.5,
+            HEADER.tempo.w - 1, HEADER.tempo.h - 1, skin.corner, skin.panelOutline, 1);
   text (shown.toFixed (1) + ' BPM  ' + (manual ? 'manual' : 'host'), HEADER.tempo, 11,
         manual ? skin.accentAlt : skin.textDim, { align: 'right', bold: true });
 
@@ -1724,11 +1737,14 @@ function drawLogo (rect) {
 /** The header meter: RMS as a bar, the held peak as a line, GR as a strip. */
 function drawMeter (rect) {
   const fraction = (db) => Math.min (1, Math.max (0, (db + 60) / 60));
-  fillRR (rect.x, rect.y, rect.w, rect.h, skin.corner, darker (skin.background));
+  // A meter is read by eye, not by value, so its pocket is the darkest thing the
+  // skin owns and its unlit track is a sheen on the glass - not the knob ring's
+  // colour, which on a light cabinet would wash the lamps out.
+  fillRR (rect.x, rect.y, rect.w, rect.h, skin.corner, skin.faceLo);
 
   const barX = rect.x + 4, barY = rect.y + rect.h * 0.35;
   const barW = rect.w - 8, barH = rect.h * 0.55;
-  fillRR (barX, barY, barW, barH, 2, withAlpha (skin.knobTrack, 0.55));
+  fillRR (barX, barY, barW, barH, 2, withAlpha (skin.spec, 0.12));
 
   const xRed = barX + barW * fraction (-6);
   fillRect (barX, barY, xRed - barX, barH, withAlpha (skin.meterGreen, 0x30 / 255));
@@ -1741,12 +1757,18 @@ function drawMeter (rect) {
   ctx.fillStyle = grad;
   ctx.fillRect (barX + 1, barY + 1, Math.max (0, barW * fraction (ballistics.rmsDb) - 2), barH - 2);
 
+  // The held peak is part of the scale, so it is drawn with the scale's own
+  // inks: the playhead colour is tuned for the light of the panel, and a meter
+  // pocket is the darkest thing on the cabinet.
   const clipped = ballistics.peakDb > -0.5;
   fillRect (barX + barW * fraction (ballistics.peakHoldDb) - 1, barY, 2, barH,
-            clipped ? skin.gate : withAlpha (skin.playhead, 0.85));
+            clipped ? skin.meterRed : skin.meterAmber);
 
+  // The strip under the bar is a gain-reduction lamp: nothing to see while the
+  // limiter is idle, red while it works, the one colour a meter has always meant
+  // by that.
   fillRect (barX, rect.y + rect.h - 4, barW, 2,
-            ballistics.grDb > 0.5 ? withAlpha (skin.accent, 0.9) : skin.knobTrack);
+            ballistics.grDb > 0.5 ? skin.meterRed : withAlpha (skin.spec, 0.12));
 }
 
 // ---------------------------------------------------------------------------
@@ -2122,7 +2144,7 @@ function drawCredit () {
     lines.push (lineText);
 
   lines.slice (0, 2).forEach ((row, index) =>
-    text (row, { x: rect.x + 1, y: rect.y + index * 11, w: rect.w - 2, h: 11 }, 9, skin.textDim,
+    text (row, { x: rect.x + 1, y: rect.y + index * 11, w: rect.w - 2, h: 11 }, 9, skin.faceInk,
           { align: 'left' }));
 }
 

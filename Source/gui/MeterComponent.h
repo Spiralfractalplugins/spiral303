@@ -66,7 +66,10 @@ public:
     {
         const auto& th = Skins::current();
         auto r = getLocalBounds().toFloat();
-        g.setColour (th.background.darker (0.3f));
+        // A meter is read by eye, not by value: the pocket is the darkest thing
+        // the skin owns and the unlit track is a sheen on the glass, not the
+        // knob ring's colour, which on a light cabinet washes the lamps out.
+        g.setColour (th.faceLo);
         g.fillRoundedRectangle (r, th.corner);
 
         const float scale = jmin (1.0f, r.getHeight() / 84.0f);
@@ -77,7 +80,7 @@ public:
             // the 0 dB mark at the right-high edge.
             const float barX = r.getX() + 4.0f, barY = r.getY() + r.getHeight() * 0.35f,
                         barW = r.getWidth() - 8.0f, barH = r.getHeight() * 0.55f;
-            g.setColour (th.knobTrack.withAlpha (0.55f));
+            g.setColour (th.spec.withAlpha (0.12f));
             g.fillRoundedRectangle (barX, barY, barW, barH, 2.0f);
 
             // Zones, anchored on the same axis the bar is drawn on.
@@ -97,13 +100,15 @@ public:
             g.fillRect (barX + 1.0f, barY + 1.0f, barW * rmsNorm - 2.0f, barH - 2.0f);
 
             // Held peak line.
-            g.setColour (meters.clipped() ? th.gate : th.playhead.withAlpha (0.85f));
+            // The held peak is part of the scale, so it is drawn with the
+            // scale's own inks.
+            g.setColour (meters.clipped() ? th.meterRed : th.meterAmber);
             g.fillRect (barX + barW * MeterBallistics::fraction (meters.holdDb()) - 1.0f,
                         barY, 2.0f, barH);
 
             // GR strip on the bottom while limiting.
             const float grDb = meters.grDb();
-            g.setColour (grDb > 0.5f ? th.accent.withAlpha (0.9f) : th.knobTrack);
+            g.setColour (grDb > 0.5f ? th.meterRed : th.spec.withAlpha (0.12f));
             g.fillRect (barX, r.getBottom() - 4.0f, barW, 2.0f);
         }
         else

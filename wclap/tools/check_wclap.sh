@@ -61,6 +61,12 @@ echo "== the page around the canvas =="
 node wclap/tools/check_page_css.mjs
 
 echo
+echo "== the four skins =="
+# The palette is written twice, once for the browser and once for the native
+# editor, and a colour that reads on one cabinet is invisible on another.
+node wclap/tools/check_skins.mjs
+
+echo
 echo "== the interface draws itself =="
 node wclap/tools/dump_state.mjs "$MODULE" "$HOST_HALF" "$WORK/state.json"
 node wclap/tools/check_ui.mjs "$WORK/state.json"

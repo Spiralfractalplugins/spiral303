@@ -43,6 +43,9 @@ struct Palette
     juce::Colour pointer;   // the index line on the knob
     juce::Colour screw, screwHi;
     juce::Colour ink;       // printed or engraved legend
+    // The wordmark and the credit are printed on the cabinet itself, above
+    // and beside the panels, where no panel colour holds them up.
+    juce::Colour faceInk;
     juce::Colour grain;     // wood grain / brushing strokes
     juce::Colour ledOn, ledOff, hazard;
     // The VU ramp is the one colour scale that means something rather than
@@ -80,10 +83,10 @@ namespace Skins
             dark.panel        = juce::Colour (0xff22262d);
             dark.panelOutline = juce::Colour (0xff333a44);
             dark.text         = juce::Colour (0xffc8d0dc);
-            dark.textDim      = juce::Colour (0xff7a8492);
+            dark.textDim      = juce::Colour (0xff838d9a);
             dark.accent       = juce::Colour (0xffe8a03c);
             dark.accentAlt    = juce::Colour (0xff4ac8e8);
-            dark.pitch        = juce::Colour (0xffb06ae8);
+            dark.pitch        = juce::Colour (0xffb26de8);
             dark.gate         = juce::Colour (0xffe8564a);
             dark.gridLine     = juce::Colour (0xff2c313a);
             dark.gridBeat     = juce::Colour (0xff3d4451);
@@ -106,6 +109,7 @@ namespace Skins
             dark.screw        = juce::Colour (0xff3a4150);
             dark.screwHi      = juce::Colour (0xff5b6472);
             dark.ink          = juce::Colour (0xff7a8492);
+            dark.faceInk      = dark.text;
             dark.grain        = juce::Colour (0xff2c313a);
             dark.ledOn        = juce::Colour (0xffe8564a);
             dark.ledOff       = juce::Colour (0xff3a4150);
@@ -148,6 +152,7 @@ namespace Skins
             console.screw        = juce::Colour (0xff27455f);
             console.screwHi      = juce::Colour (0xff63a2c8);
             console.ink          = juce::Colour (0xffbfe6ff);
+            console.faceInk      = console.text;
             console.grain        = juce::Colour (0xff16222f);
             console.ledOn        = juce::Colour (0xff4dff9e);
             console.ledOff       = juce::Colour (0xff1c3242);
@@ -175,9 +180,9 @@ namespace Skins
             wood.panel        = juce::Colour (0xffada393);
             wood.panelOutline = juce::Colour (0xff7a7161);
             wood.text         = juce::Colour (0xff241f16);
-            wood.textDim      = juce::Colour (0xff544b3c);
-            wood.accent       = juce::Colour (0xff8a3b0e);
-            wood.accentAlt    = juce::Colour (0xff1c4f66);
+            wood.textDim      = juce::Colour (0xff413a2f);
+            wood.accent       = juce::Colour (0xff632a0a);
+            wood.accentAlt    = juce::Colour (0xff173f52);
             wood.pitch        = juce::Colour (0xff4a2674);
             wood.gate         = juce::Colour (0xffa11f14);
             wood.gridLine     = juce::Colour (0xff9d9382);
@@ -200,13 +205,14 @@ namespace Skins
             wood.screw        = juce::Colour (0xff8b8272);
             wood.screwHi      = juce::Colour (0xffd5cdba);
             wood.ink          = juce::Colour (0xff2b2519);
+            wood.faceInk      = juce::Colour (0xfff0e4c8);   // the cream of a silkscreen on walnut
             wood.grain        = juce::Colour (0xff3a2012);
             wood.ledOn        = juce::Colour (0xffb3230f);
             wood.ledOff       = juce::Colour (0xff8c8271);
             wood.hazard       = juce::Colour (0xffd6a512);
-            wood.meterGreen   = juce::Colour (0xff3f7d4e);
-            wood.meterAmber   = juce::Colour (0xffc08a2a);
-            wood.meterRed     = juce::Colour (0xffa11f14);
+            wood.meterGreen   = juce::Colour (0xff6fbf7a);
+            wood.meterAmber   = juce::Colour (0xffe0a83c);
+            wood.meterRed     = juce::Colour (0xffe06a4a);
             wood.chip         = juce::Colour (0xffc9bda6);
             wood.chipText     = wood.textDim;
             wood.knobFinish   = KnobFinish::Phenolic;
@@ -250,13 +256,14 @@ namespace Skins
             metal.screw        = juce::Colour (0xff6d767f);
             metal.screwHi      = juce::Colour (0xffc4ccd3);
             metal.ink          = juce::Colour (0xffe6ebf0);
+            metal.faceInk      = metal.text;
             metal.grain        = juce::Colour (0xff8d979f);
             metal.ledOn        = juce::Colour (0xff5be07a);
             metal.ledOff       = juce::Colour (0xff39414a);
             metal.hazard       = juce::Colour (0xffd8b41f);
             metal.meterGreen   = juce::Colour (0xff5be07a);
             metal.meterAmber   = juce::Colour (0xffe8b84a);
-            metal.meterRed     = juce::Colour (0xffd2564a);
+            metal.meterRed     = juce::Colour (0xffe87050);
             metal.chip         = juce::Colour (0xff171c20);
             metal.chipText     = metal.textDim;
             metal.knobFinish   = KnobFinish::KnurledMetal;

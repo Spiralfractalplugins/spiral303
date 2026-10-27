@@ -162,7 +162,7 @@ public:
     class CreditField : public WrappedLabel
     {
     public:
-        explicit CreditField (PluginEditor& owner) : editor (owner) {}
+        explicit CreditField (PluginEditor& owner) : WrappedLabel ({}, true), editor (owner) {}
 
         void mouseUp (const juce::MouseEvent& e) override
         {
