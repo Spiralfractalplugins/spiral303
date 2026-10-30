@@ -76,7 +76,10 @@ from the [plinken shelf](https://plinken.org/shelf.json); see
   release, level and clock division (16th / 8th / 32nd / 16T).
 - **MIDI in and out of the pattern**: drop a `.mid` on the window and the lowest
   line lands in the sequencer, snapped to your scale; export writes the pattern
-  back as a standard `.mid` that imports to the same steps.
+  back as a standard `.mid` that imports to the same steps; and while the
+  sequencer runs, the playing line also leaves the plug-in as note events to the
+  host, at the very samples the voice fires, with the accent riding in velocity
+  exactly the way the export writes it.
 - **Analogue behaviour**: Warmth adds pitch and cutoff drift, fluctuations and
   gate-threshold spread; a noise floor can be switched on.
 - **Master limiter** with a continuous knee, threshold and ceiling, plus a

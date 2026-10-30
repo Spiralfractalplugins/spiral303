@@ -437,6 +437,7 @@ public:
         lastMidiBeat = -1.0;
         lastPlayedFreq = 0.0;
         pendingTrigger = false;
+        pendingMidiNote = -1;
         dcPrevious = 0.0f;
         dcState = 0.0f;
         drift.reset();
@@ -451,6 +452,8 @@ public:
                   bool running, double midiBeatPosition)
     {
         const int numSamples = buffer.getNumSamples();
+        midiOut.clear();
+
         // MIDI-map CC latches shade the whole block through a local copy. A
         // knob's value latches across blocks (hardware knobs are absolute),
         // but switching maps must reset the latch or an old hardware move
@@ -487,6 +490,12 @@ public:
             lastMidiBeat = -1.0;
         wasRunning = running;
 
+        // The MIDI stream follows the audio: a restart or a stop closes whatever
+        // note the running pattern still held, at the very top of this block, so
+        // the line (when it resumes) begins from step 1 with the keys up.
+        if ((! running || startOnset || jumped) && heldMidiNote >= 0 && numSamples > 0)
+            sequencerNoteOff (0);
+
         applyMidi (patched, midi, running);
 
         float* ch = buffer.getWritePointer (0);
@@ -504,7 +513,7 @@ public:
             while (position >= stepSamples && running)
             {
                 position -= stepSamples;
-                onStepBoundary (patched, true);
+                onStepBoundary (patched, true, i);
             }
 
             // Keep the sample clock ticking when stopping so playback can resume, but
@@ -514,7 +523,7 @@ public:
 
             if (pendingTrigger && i >= pendingDelay)
             {
-                firePendingNote (patched);
+                firePendingNote (patched, i);
                 pendingTrigger = false;
             }
 
@@ -605,6 +614,21 @@ public:
     float scopeLevel() const { return voice.levelForScope(); }
     float scopePhase() const { return voice.oscPhase(); }
 
+    /** Hands the notes the running pattern produced this block to the caller and
+        clears the stash. Events land at the very samples the voice fired (swing
+        and jitter included), encoded like MidiExport: the accent travels in
+        velocity, an accented note sits at or above the accent velocity band. The
+        caller passes its incoming buffer straight back in - it is empty by then,
+        because the engine consumed it. The outgoing off and the incoming on of a
+        legato boundary share one stamp, and the buffer's own ordering inside a
+        stamp is not guaranteed. */
+    void takeMidiOut (juce::MidiBuffer& destination)
+    {
+        for (const auto& metadata : midiOut)
+            destination.addEvent (metadata.getMessage(), metadata.samplePosition);
+        midiOut.clear();
+    }
+
 private:
     void applyMidi (const Patch& patch, juce::MidiBuffer& midi, bool running)
     {
@@ -638,8 +662,10 @@ private:
         midi.clear();
     }
 
-    /** Latches the note of the step that just began; swing and jitter delay when it fires. */
-    void onStepBoundary (const Patch& patch, bool running)
+    /** Latches the note of the step that just began; swing and jitter delay when it fires.
+        The sample the boundary landed on goes along, because that is exactly where the
+        MIDI stream's keys come up or down. */
+    void onStepBoundary (const Patch& patch, bool running, int sampleIndex)
     {
         if (! running)
             return;
@@ -651,13 +677,15 @@ private:
 
         pendingTrigger = false;
         pendingDelay = 0;
+        pendingMidiNote = -1;
 
         if (running)
         {
             if (seq->isNote (i))
             {
                 pendingTrigger = true;
-                pendingFreq = midiToFreq (seq->midiNote (i) + baseNoteShift);
+                pendingMidiNote = jlimit (0, 127, seq->midiNote (i) + baseNoteShift);
+                pendingFreq = midiToFreq (pendingMidiNote);
                 pendingAccent = seq->hasAccent (i);
                 // A run of accents charges up; a plain note or a rest ends it.
                 accentChain = pendingAccent ? std::min (accentChain + 1, TbVoice::kAccentChainMax) : 0;
@@ -676,8 +704,11 @@ private:
             }
             else
             {
+                // A rest (or a dead tie): the keys come up while the voice's own
+                // tail rings out.
                 lastPlayedFreq = 0.0;
                 accentChain = 0;
+                sequencerNoteOff (sampleIndex);
             }
         }
 
@@ -696,7 +727,7 @@ private:
         patternIndex = (patternIndex + 1) % Sequence::kMaxSteps;
     }
 
-    void firePendingNote (const Patch& patch)
+    void firePendingNote (const Patch& patch, int sampleIndex = 0)
     {
         Patch withOverrides = patch;
         withOverrides.cutoff = cutoffOverride;
@@ -705,6 +736,39 @@ private:
         voice.noteOn (pendingFreq, pendingGlideSamples > 2.0 ? lastPlayedFreq : 0.0,
                       withOverrides, pendingAccent, pendingGlideSamples, pendingVel, pendingRun);
         lastPlayedFreq = pendingFreq;
+
+        // The MIDI stream mirrors the trigger at the very sample the voice took
+        // it: the old key goes up and the new one goes down on one stamp, the
+        // way the .mid export writes the line back into a file.
+        if (pendingMidiNote >= 0)
+            sequencerNoteOn (sampleIndex, pendingMidiNote, pendingVel, pendingAccent);
+    }
+
+    // ── MIDI-out ────────────────────────────────────────────────────────────
+    /** The accent reads back out of velocity the same way MidiExport writes it:
+        an accented note sits at or above this, every other note below. A line
+        recorded off this stream and loaded through the importer comes back with
+        the same accents it played with. */
+    static constexpr int kAccentMidiVelocity = 100;
+
+    void sequencerNoteOff (int sampleIndex)
+    {
+        if (heldMidiNote < 0)
+            return;
+        midiOut.addEvent (juce::MidiMessage::noteOff (kMidiOutChannel, heldMidiNote), sampleIndex);
+        heldMidiNote = -1;
+    }
+
+    void sequencerNoteOn (int sampleIndex, int note, double velNorm, bool accented)
+    {
+        sequencerNoteOff (sampleIndex);
+        const int level = jlimit (1, 127, static_cast<int> (velNorm * 127.0 + 0.5));
+        const int velocity = accented
+            ? std::max (kAccentMidiVelocity, level)
+            : std::min (kAccentMidiVelocity - 1, level);
+        midiOut.addEvent (juce::MidiMessage::noteOn (kMidiOutChannel, note,
+                          static_cast<juce::uint8> (jlimit (1, 127, velocity))), sampleIndex);
+        heldMidiNote = note;
     }
 
     double midiToFreq (int note) const { return 440.0 * std::exp2 ((jlimit (12, 108, note) - 69) / 12.0); }
@@ -752,6 +816,14 @@ private:
     int pendingDelay = 0;
     int accentChain = 0, pendingRun = 1;
     double pendingFreq = 0.0, pendingGlideSamples = 0.0, pendingVel = 1.0;
+    int pendingMidiNote = -1;
+
+    /** MIDI-out of the running pattern: note events at the samples the voice
+        took them, drained by takeMidiOut() after the block. */
+    static constexpr int kMidiOutChannel = 1; // the same channel MidiExport writes
+    juce::MidiBuffer midiOut;
+    /** MIDI note currently reported as held in the out stream, or -1 when none. */
+    int heldMidiNote = -1;
 
     /** MIDI-map latch: the last seen controller values, kept across blocks
         because hardware knobs are absolute. */

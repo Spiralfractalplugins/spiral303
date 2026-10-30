@@ -1882,6 +1882,219 @@ static void runTests()
         check (true, "oversampling keeps the signal finite and audible (verified above)");
     }
 
+    // 29. MIDI out: the running pattern leaves the plugin as note events placed
+    //     at the very samples the voice fired, with the accent in the velocity
+    //     band the .mid export writes. Ties hold the stream's note open, rests
+    //     lift it, and a stopped transport leaves the stream silent.
+    {
+        struct Event
+        {
+            int time = 0;      // absolute sample within the collection window
+            bool on = false;
+            int note = 0, velocity = 0;
+        };
+
+        AudioBuffer<float> buf (2, 512);
+        auto drain = [&] (PluginProcessor& p, int block)
+        {
+            buf.clear();
+            MidiBuffer midi;
+            p.processBlock (buf, midi);
+            std::vector<Event> events;
+            const int base = block * 512;
+            for (const auto& md : midi)
+            {
+                Event e;
+                e.time = base + md.samplePosition;
+                e.on = md.getMessage().isNoteOn();
+                e.note = md.getMessage().getNoteNumber();
+                e.velocity = static_cast<int> (md.getMessage().getVelocity());
+                events.push_back (e);
+            }
+            return events;
+        };
+
+        auto p = makeRunning();
+        setParam (*p, ParamIDs::warmth, 0.0f);   // no trigger jitter: clean boundaries
+        const double stepSamples = 48000.0 * 60.0 / 130.0 / 4.0;   // a 1/16 step at this clock
+
+        Sequence line;
+        line.setNumSteps (4);
+        line.scaleIndex = 0; line.baseMidi = 36; line.clearAll();
+        line.setNote (0, 0);
+        line.toggleAccent (0);         // step 0: an accented C2
+        line.setNote (1, 7);           // step 1: a plain G2
+        line.setTie (2);               // step 2: the tie holds the open note
+        // step 3 stays a rest: the keys come up there.
+        p->setSequence (line);
+
+        // Collect a run long enough for several loops of the pattern and make
+        // the assertions semantic rather than phase-aligned: whatever block the
+        // steps fall into, every on/off sentence has to be complete and the
+        // line monophonic.
+        const int collectBlocks = 220;   // ~5 pattern loops at this clock
+        std::vector<Event> stream;
+        for (int block = 0; block < collectBlocks; ++block)
+        {
+            auto events = drain (*p, block);
+            stream.insert (stream.end(), events.begin(), events.end());
+        }
+
+        auto countsOf = [&] (bool on, int note)
+        {
+            int count = 0;
+            for (const auto& e : stream)
+                if (e.on == on && e.note == note)
+                    ++count;
+            return count;
+        };
+
+        check (countsOf (true, 36) >= 3 && countsOf (false, 36) >= 3
+                   && countsOf (true, 43) >= 3 && countsOf (false, 43) >= 3,
+               "the accented note and the plain note both leave the plugin as MIDI (36 on "
+               + String (countsOf (true, 36)) + "/off " + String (countsOf (false, 36))
+               + ", 43 on " + String (countsOf (true, 43)) + "/off "
+               + String (countsOf (false, 43)) + ")");
+        bool notesRight = true;
+        for (const auto& e : stream)
+            notesRight &= e.note == 36 || e.note == 43;
+        check (notesRight, "no stray note numbers in the stream");
+
+        // Every note fires with the velocity band the .mid export writes:
+        // accent at or above the band, plain note below it, offs at zero.
+        int velGood = 0;
+        for (const auto& e : stream)
+        {
+            if (e.on && e.note == 36 && e.velocity >= 100)
+                ++velGood;
+            else if (e.on && e.note == 43 && e.velocity >= 1 && e.velocity <= 99)
+                ++velGood;
+            else if (! e.on && e.velocity == 0)
+                ++velGood;
+        }
+        check (velGood == static_cast<int> (stream.size()),
+               "each note lands in its export velocity band (" + String (velGood) + " of "
+               + String (static_cast<int> (stream.size())) + ")");
+
+        // The stream runs forward in time.
+        bool sorted = true;
+        for (size_t i = 1; i < stream.size(); ++i)
+            sorted &= stream[i - 1].time <= stream[i].time;
+        check (sorted, "the stream runs forward in time");
+
+        // Monophonic discipline: never more than one open note, and every off
+        // closes the note an on opened before it. Reads over time groups,
+        // because the MIDI buffer keeps same-sample events unordered: at a
+        // legato boundary the outgoing off and the incoming on share a stamp.
+        {
+            int opened = 0;
+            bool ok = true;
+            for (size_t i = 0; i < stream.size();)
+            {
+                size_t j = i;
+                while (j < stream.size() && stream[j].time == stream[i].time)
+                    ++j;
+                for (size_t k = i; k < j; ++k)
+                {
+                    opened += stream[k].on ? 1 : -1;
+                    if (opened < 0 || opened > 1)
+                        ok = false;
+                }
+                i = j;
+            }
+            check (ok, "the line reads monophonic: never more than one open note, offs balanced");
+        }
+
+        // A plain note is a gate of its own step: the next up comes one step
+        // later. A tie extends its note into the following step, so that one
+        // lifts two steps after its onset.
+        auto nextOff = [&] (const Event& on, int note) -> const Event*
+        {
+            for (const auto& e : stream)
+                if (! e.on && e.note == note && e.time >= on.time)
+                    return &e;
+            return nullptr;
+        };
+        int matched36 = 0, good36 = 0, matched43 = 0, good43 = 0;
+        for (const auto& e : stream)
+        {
+            if (e.on && e.note == 36)
+            {
+                const auto* off = nextOff (e, 36);
+                ++matched36;
+                if (off != nullptr && std::fabs (off->time - e.time - stepSamples) <= 128.0 && off->time > e.time)
+                    ++good36;
+            }
+            if (e.on && e.note == 43)
+            {
+                const auto* off = nextOff (e, 43);
+                ++matched43;
+                if (off != nullptr && off->time > e.time
+                        && std::fabs (off->time - e.time - 2.0 * stepSamples) <= 128.0)
+                    ++good43;
+            }
+        }
+        check (matched36 >= 3 && good36 >= matched36 - 1 && good36 > 0,
+               "the plain note lasts exactly its own step (" + String (good36) + " of "
+               + String (matched36) + " matched)");
+        check (matched43 >= 3 && good43 >= matched43 - 1 && good43 > 0,
+               "a tie holds the MIDI note for its own step plus the tied one (" + String (good43)
+               + " of " + String (matched43) + " matched)");
+
+        // The outgoing note leaves the stream at the same sample the next one
+        // enters it: every off of the 36 rides the same boundary as an on of
+        // the 43, and there is an off for every on.
+        {
+            bool sameBoundary = true;
+            for (const auto& e : stream)
+                if (! e.on && e.note == 36)
+                {
+                    bool found = false;
+                    for (const auto& other : stream)
+                        found |= other.on && other.note == 43 && other.time == e.time;
+                    sameBoundary &= found;
+                }
+            check (sameBoundary, "the outgoing note leaves the stream at the sample the next one enters ("
+                   + String (countsOf (false, 36)) + " offs checked)");
+        }
+
+        // Stopping the transport leaves the stream silent from then on: the
+        // flush of a held note is a one-off, and no pattern runs without a clock.
+        {
+            if (auto* play = dynamic_cast<AudioParameterBool*> (
+                    p->state().getParameter (ParamIDs::manualPlay)))
+                play->setValueNotifyingHost (0.0f);
+            std::vector<Event> after;
+            for (int block = 0; block < 8; ++block)
+            {
+                auto events = drain (*p, block);
+                after.insert (after.end(), events.begin(), events.end());
+            }
+            check (after.empty(), "a stopped pattern leaves the MIDI stream silent");
+        }
+
+        // A never-started pattern emits nothing at all.
+        {
+            auto q = makeRunning();
+            if (auto* play = dynamic_cast<AudioParameterBool*> (
+                    q->state().getParameter (ParamIDs::manualPlay)))
+                play->setValueNotifyingHost (0.0f);
+            q->setSequence (line);
+            AudioBuffer<float> buf2 (2, 512);
+            for (int block = 0; block < 8; ++block)
+            {
+                buf2.clear();
+                MidiBuffer midi;
+                q->processBlock (buf2, midi);
+                check (midi.getNumEvents() == 0, "an idle processor never writes MIDI events");
+                if (midi.getNumEvents() != 0) break;
+            }
+            q->releaseResources();
+        }
+
+        p->releaseResources();
+    }
+
     runStabilityTests (&check);
     runGuiTests (&check);
     runCoverageTests (&check);

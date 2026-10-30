@@ -443,6 +443,10 @@ void PluginProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi
         sequencerRunning.store (running, std::memory_order_relaxed);
 
         engine.process (buffer, midiMessages, patch, running, beats);
+        // The pattern's own line leaves as MIDI: the outgoing note events built
+        // during the render (the incoming buffer was consumed and is empty by
+        // now) ride the same buffer back out to the host.
+        engine.takeMidiOut (midiMessages);
 
         const int numSteps = seqAudio.numSteps();
         playingStep.store (running && numSteps > 0 ? engine.getPatternIndex() % numSteps : -1);
