@@ -16,6 +16,7 @@
 #include "dsp/Limiter.h"
 #include "dsp/Saturation.h"
 #include "dsp/Sequence.h"
+#include "dsp/MidiClockTransport.h"
 
 class PluginProcessor : public juce::AudioProcessor,
                         private juce::ValueTree::Listener,
@@ -139,6 +140,20 @@ public:
 
     juce::AudioParameterFloat* findFloatParam (const juce::String& id);
 
+    //==============================================================================
+    // Serial step entry (REC). The audio thread captures the events of the
+    // incoming stream; the message thread writes them into the pattern at the
+    // record cursor (the editor's timer drains the queue).
+
+    struct RecordEvent { int kind = 0; int note = 0; int velocity = 0; };
+
+    bool isRecording() const { return recording.load (std::memory_order_relaxed); }
+    /** Step the record cursor sits on (-1 while the entry is off). */
+    int recordCursorStep() const { return isRecording() ? recordCursor.load (std::memory_order_relaxed) : -1; }
+    void setRecording (bool on);
+    /** Message-thread only: writes the captured events into the pattern. */
+    void drainRecordQueue();
+
 private:
     void applyProgram (int index);
     void applyPreset (const PresetDef&);
@@ -220,6 +235,18 @@ private:
     juce::AudioParameterBool* pGateOn = nullptr;
     juce::AudioParameterBool* pManualPlay = nullptr;
     juce::AudioParameterBool* pSeqOn = nullptr;
+    juce::AudioParameterChoice* pStartMode = nullptr;
+
+    /** MIDI clock status and the note trigger, audio-thread only (the scanner
+        runs before the transport decides this block's run line). */
+    MidiClockTransport midiClock;
+
+    /** Serial step entry: the audio thread pushes under this lock, the message
+        thread swaps the batch out on every editor tick. */
+    juce::CriticalSection recordCs;
+    std::vector<RecordEvent> recordQueue;
+    std::atomic<bool> recording { false };
+    std::atomic<int> recordCursor { 0 };
 
     // Sequence and gate live outside the parameter tree; mirrored under a lock,
     // adopted by the audio thread at the start of each block.

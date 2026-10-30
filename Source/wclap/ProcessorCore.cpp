@@ -39,6 +39,7 @@ namespace spiral303
     {
         sampleRate = (newSampleRate > 1.0 && std::isfinite (newSampleRate)) ? newSampleRate : 48000.0;
         engine.prepare (sampleRate);
+        midiClock.prepare();
         fatAnalog.prepare (sampleRate, 2);
         fxDelay.prepare (sampleRate);
         fxReverb.prepare (sampleRate);
@@ -288,8 +289,12 @@ namespace spiral303
         bpm = static_cast<double> (paramValue (kBpm));
         beatPosition = -1.0;
 
-        const bool hostSync = paramValue (kSyncMode) < 0.5f;
-        if (hostSync)
+        const int syncIndex = static_cast<int> (juce::jlimit (0.0f, 2.0f, paramValue (kSyncMode)));
+        const int startModeIndex = static_cast<int> (juce::jlimit (0.0f, 1.0f, paramValue (kStartMode)));
+        const bool manualPlaying = paramValue (kManualPlay) >= 0.5f;
+        midiClock.beforeBlock (syncIndex, startModeIndex);
+
+        if (syncIndex == 0)
         {
             // clap_process_t::transport carries the host's transport for this
             // block: whether it rolls, its tempo, and the song position in
@@ -308,10 +313,16 @@ namespace spiral303
                 // nothing to hold on to.
                 running = false;
             }
+            // The host owns the run line here: the note trigger stands down.
+            midiClock.dropTrigger();
+        }
+        else if (syncIndex == 1)
+        {
+            midiClock.evaluateManual (manualPlaying, bpm, running, bpm, beatPosition);
         }
         else
         {
-            running = paramValue (kManualPlay) >= 0.5f;
+            midiClock.evaluateClock (bpm, running, bpm, beatPosition);
         }
 
         // SEQ OFF turns this into a plain MIDI instrument.
@@ -347,6 +358,35 @@ namespace spiral303
         buffer.clear();
 
         const float gain = decibelsToGain (paramValue (kMasterGain));
+
+        // The incoming stream speaks before the transport decides: Start/Stop
+        // and the 24-PPQ clock steer the Midi Clock sync, and a note-on while
+        // stopped can raise the run line (Start mode = Note Trigger). The
+        // engine consumes the same buffer afterwards.
+        const int syncIndex = static_cast<int> (juce::jlimit (0.0f, 2.0f, paramValue (kSyncMode)));
+        const int startModeIndex = static_cast<int> (juce::jlimit (0.0f, 1.0f, paramValue (kStartMode)));
+        midiClock.setSampleRate (sampleRate);
+        for (const auto& metadata : midi)
+        {
+            const auto msg = metadata.getMessage();
+            if (msg.isMidiStart())
+                midiClock.start();
+            else if (msg.isMidiContinue())
+                midiClock.cont();
+            else if (msg.isMidiStop())
+            {
+                midiClock.halt();
+                midiClock.dropTrigger();
+            }
+            else if (msg.isMidiClock())
+                midiClock.tick (metadata.samplePosition);
+            else if (msg.isNoteOn())
+                midiClock.noteOn (startModeIndex != 0 && syncIndex != 0,
+                                  midiClock.clockLineUp (syncIndex,
+                                      paramValue (kManualPlay) >= 0.5f),
+                                  static_cast<double> (paramValue (kBpm)));
+        }
+        midiClock.advance (numSamples, sampleRate);
 
         // The transport first: with Sync on Host its tempo is the clock's tempo,
         // and the patch is built on it.

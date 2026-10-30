@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include "dsp/MidiImport.h"
+
 using namespace juce;
 
 namespace
@@ -60,7 +62,7 @@ namespace
         params.push_back (std::make_unique<AudioParameterChoice> (
             ParamIDs::clockDiv, "Clock", kClockDivisions, 4));
         params.push_back (std::make_unique<AudioParameterChoice> (
-            ParamIDs::syncMode, "Sync", StringArray { "Host", "Manual" }, 0));
+            ParamIDs::syncMode, "Sync", StringArray { "Host", "Manual", "Midi Clock" }, 0));
         params.push_back (std::make_unique<AudioParameterChoice> (
             ParamIDs::gateDiv, "Gate Div", StringArray { "16th", "8th", "32nd", "16T" }, 0));
 
@@ -146,6 +148,14 @@ namespace
             ParamIDs::uiSkin, "Skin",
             StringArray { "Dark", "Console", "Wood", "Metal" }, 0));
 
+        // The very end of the list: nothing above this gets a new AUv2 index.
+        // Start mode = Note Trigger starts the sequencer's run line on the
+        // first incoming note; like the MIDI map this one is reachable through
+        // the host's automation panel alone (the window has no free cell for it).
+        params.push_back (std::make_unique<AudioParameterChoice> (
+            ParamIDs::startMode, "Start Mode",
+            StringArray { "Transport", "Note Trigger" }, 0));
+
         return { params.begin(), params.end() };
     }
 
@@ -207,6 +217,7 @@ PluginProcessor::PluginProcessor()
     pFilterType = dynamic_cast<AudioParameterChoice*> (valueTreeState.getParameter (ParamIDs::filterType));
     pManualPlay = dynamic_cast<AudioParameterBool*> (valueTreeState.getParameter (ParamIDs::manualPlay));
     pSeqOn = dynamic_cast<AudioParameterBool*> (valueTreeState.getParameter (ParamIDs::seqOn));
+    pStartMode = dynamic_cast<AudioParameterChoice*> (valueTreeState.getParameter (ParamIDs::startMode));
     pFxDelDiv = dynamic_cast<AudioParameterChoice*> (valueTreeState.getParameter (ParamIDs::fxDelDiv));
 
     seqCurrent = Sequence::decode (defaultSequenceText());
@@ -238,6 +249,7 @@ PluginProcessor::~PluginProcessor()
 void PluginProcessor::prepareToPlay (double sampleRate, int maxExpectedBlockLength)
 {
     engine.prepare (sampleRate);
+    midiClock.prepare();
     fatAnalog.prepare (sampleRate, 2);
     fxDelay.prepare (sampleRate);
     fxReverb.prepare (sampleRate);
@@ -362,6 +374,9 @@ Patch PluginProcessor::buildPatch (double sampleRate) const
     const float attackKnob = pAttack != nullptr ? pAttack->get() : 0.0f;
     patch.attackSeconds = ParamCurves::attackToSeconds (attackKnob);
     patch.midiMap = pMidiMap != nullptr ? jlimit (0, 3, pMidiMap->getIndex()) : 0;
+    // REC: while the serial entry is armed the played notes belong to the
+    // pattern, not to the transpose of the running line.
+    patch.recording = isRecording();
 
     patch.sequence = &seqAudio;
     patch.gate = gateActive() && gateAudio != nullptr ? gateAudio : nullptr;
@@ -373,7 +388,9 @@ void PluginProcessor::updateTransport (bool& running, double& bpm, double& beatP
     bpm = pBpm != nullptr ? static_cast<double> (pBpm->get()) : 130.0;
     beatPosition = -1.0;
 
-    const bool hostSync = pSyncMode == nullptr || pSyncMode->getIndex() == 0;
+    const int syncIndex = pSyncMode == nullptr ? 0 : pSyncMode->getIndex();
+    const int startModeIndex = pStartMode == nullptr ? 0 : pStartMode->getIndex();
+    midiClock.beforeBlock (syncIndex, startModeIndex);
     bool hostPlaying = false;
 
     if (auto* ph = getPlayHead())
@@ -384,23 +401,29 @@ void PluginProcessor::updateTransport (bool& running, double& bpm, double& beatP
                 if (*b > 20.0 && *b < 400.0)
                     bpm = *b;
             hostPlaying = pos->getIsPlaying();
-            if (hostSync)
+            if (syncIndex == 0)
                 beatPosition = pos->getPpqPosition().orFallback (-1.0);
         }
     }
 
-    if (hostSync)
+    if (syncIndex == 0)
     {
         // Host-synced and the host is not rolling: the clock stands still, like the 303
         // with its run line stopped, and the next start begins again at step 1.
         running = hostPlaying;
         if (! hostPlaying)
             beatPosition = -1.0;
+        // The host owns the run line here: the note trigger stands down.
+        midiClock.dropTrigger();
+    }
+    else if (syncIndex == 1)
+    {
+        midiClock.evaluateManual (pManualPlay != nullptr && pManualPlay->get(), bpm,
+                                  running, bpm, beatPosition);
     }
     else
     {
-        beatPosition = -1.0;
-        running = pManualPlay == nullptr || pManualPlay->get();
+        midiClock.evaluateClock (bpm, running, bpm, beatPosition);
     }
 
     // SEQ OFF turns this into a plain MIDI instrument: the sequencer never runs,
@@ -413,6 +436,93 @@ void PluginProcessor::updateTransport (bool& running, double& bpm, double& beatP
     }
 
     tempoBpm.store (bpm);
+}
+
+//==============================================================================
+// Serial step entry (REC).
+
+void PluginProcessor::setRecording (bool on)
+{
+    if (recording.exchange (on, std::memory_order_relaxed) == on)
+        return;
+
+    if (on)
+    {
+        // The cursor starts where the line is: a playing step keeps the entry
+        // in tempo, a stopped clock runs the entry from step 0.
+        const int playing = playingStep.load (std::memory_order_relaxed);
+        recordCursor.store (playing >= 0 ? playing : 0, std::memory_order_relaxed);
+    }
+
+    const juce::ScopedLock lock (recordCs);
+    recordQueue.clear();
+}
+
+void PluginProcessor::drainRecordQueue()
+{
+    if (! isRecording())
+        return;
+
+    std::vector<RecordEvent> batch;
+    {
+        const juce::ScopedLock lock (recordCs);
+        batch.swap (recordQueue);
+    }
+    if (batch.empty())
+        return;
+
+    Sequence edited = getSequence();
+    const int steps = edited.numSteps();
+    if (steps <= 0)
+        return;
+
+    const auto& offsets = Sequence::scaleOffsets (edited.scaleIndex);
+    int cursor = juce::jlimit (0, steps - 1, recordCursor.load (std::memory_order_relaxed));
+    bool held = false;   // a note is down and no note-off has come for it
+
+    for (const auto& rec : batch)
+    {
+        if (rec.kind == 1)
+        {
+            // A pedal tap: the step reads a rest, cursor moves on, and the legato
+            // context is over (a pedal-washed line is not legato).
+            if (edited.steps[static_cast<size_t> (cursor)] != Sequence::kRest)
+                edited.steps[static_cast<size_t> (cursor)] = Sequence::kRest;
+            cursor = (cursor + 1) % steps;
+            held = false;
+        }
+        else if (rec.kind == 0)
+        {
+            // The snapped degree of the played note inside the grid's own scale
+            // (the importer's mapping: ties fall downwards, the fold clips).
+            const int degree = MidiImport::nearestDegree (offsets, rec.note - edited.baseMidi);
+            // The step keeps the flags it had: the pattern's accent, slide and
+            // tie marks are not wiped by playing over them. The accent rides
+            // the velocity band the .mid export writes, and a second note
+            // played while the first is still sounding slides into the next
+            // step - whatever that cell held before.
+            juce::uint16 code = static_cast<juce::uint16> (Sequence::kNoteBase
+                                 + (degree & 0x7f)
+                                 + (edited.hasSlide (cursor) ? Sequence::kSlideFlag : 0)
+                                 + (edited.hasAccent (cursor) ? Sequence::kAccentFlag : 0));
+            if (held)
+                code |= Sequence::kSlideFlag;
+            if (rec.velocity >= 100)
+                code |= Sequence::kAccentFlag;
+            edited.steps[static_cast<size_t> (cursor)] = code;
+            edited.setVelocity (cursor, static_cast<float> (rec.velocity) / 127.0f);
+
+            cursor = (cursor + 1) % steps;
+            held = true;
+        }
+        else if (rec.kind == 2)
+        {
+            held = false;   // the note came up: a later note is its own attack
+        }
+    }
+
+    recordCursor.store (cursor, std::memory_order_relaxed);
+    setSequence (edited);
 }
 
 void PluginProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages)
@@ -435,6 +545,59 @@ void PluginProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi
         Patch patch = buildPatch (sr);
         engine.setGateTimes (pGateAtk != nullptr ? pGateAtk->get() : 2.0f,
                             pGateRel != nullptr ? pGateRel->get() : 14.0f);
+
+        // The incoming stream speaks before the transport decides: Start/Stop
+        // and the 24-PPQ clock steer the Midi Clock sync, and a note-on while
+        // stopped can raise the run line (Start mode = Note Trigger). The
+        // engine consumes the same buffer afterwards.
+        const int startModeIndex = pStartMode == nullptr ? 0 : pStartMode->getIndex();
+        const int syncIndex = pSyncMode == nullptr ? 0 : pSyncMode->getIndex();
+        midiClock.setSampleRate (sr);
+        for (const auto metadata : midiMessages)
+        {
+            const auto msg = metadata.getMessage();
+            if (msg.isMidiStart())
+                midiClock.start();
+            else if (msg.isMidiContinue())
+                midiClock.cont();
+            else if (msg.isMidiStop())
+            {
+                midiClock.halt();
+                midiClock.dropTrigger();
+            }
+            else if (msg.isMidiClock())
+                midiClock.tick (metadata.samplePosition);
+            else if (msg.isNoteOn())
+                midiClock.noteOn (startModeIndex != 0 && syncIndex != 0,
+                                  // the run line, as this block will see it
+                                  midiClock.clockLineUp (syncIndex, pManualPlay != nullptr && pManualPlay->get()),
+                                  pBpm != nullptr ? static_cast<double> (pBpm->get()) : 130.0);
+
+            // While the serial entry is armed, the same scan captures the
+            // events for the pattern: notes (with the accent riding the
+            // velocity band, like in the export) and the sustain pedal's
+            // tap for a rest. Note-offs ride along too, because the slide
+            // flag is legato - a second note while the first is still held.
+            if (recording.load (std::memory_order_relaxed))
+            {
+                const bool noteOnMsg = msg.isNoteOn();
+                const bool pedalRest = msg.isController() && msg.getControllerNumber() == 64
+                                       && msg.getControllerValue() >= 100;
+                if (noteOnMsg || pedalRest || msg.isNoteOff())
+                {
+                    const juce::ScopedLock lock (recordCs);
+                    if (recordQueue.size() < 256)
+                    {
+                        RecordEvent rec;
+                        rec.kind = noteOnMsg ? 0 : (pedalRest ? 1 : 2);
+                        rec.note = pedalRest ? 0 : msg.getNoteNumber();
+                        rec.velocity = noteOnMsg ? msg.getVelocity() : 0;
+                        recordQueue.push_back (rec);
+                    }
+                }
+            }
+        }
+        midiClock.advance (numSamples, sr);
 
         bool running = true;
         double bpm = 130.0, beats = -1.0;

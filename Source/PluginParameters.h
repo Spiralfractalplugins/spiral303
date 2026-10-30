@@ -58,6 +58,9 @@ namespace ParamIDs
     // Still appended last, for the same AUv2 reason: this one only chooses how
     // the interface is drawn and the audio thread never reads it.
     inline constexpr const char* uiSkin          { "UiSkin" };
+    // Appended after the skin: the very end of the list keeps every host-facing
+    // AUv2 index of the parameters above it untouched.
+    inline constexpr const char* startMode       { "Start" };
 }
 
 namespace CustomKeys

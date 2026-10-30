@@ -259,7 +259,8 @@ private:
                  exportButton { "Export WAV" }, randomButton { "Random" },
                  midiButton { "MIDI" },
                  clearButton { "Clear" }, gateOnButton { "ON" }, analogOnButton { "Analog" },
-                 hissButton { "Hiss" }, helpButton { "?" }, seqButton { "SEQ" };
+                 hissButton { "Hiss" }, helpButton { "?" }, seqButton { "SEQ" },
+                 recButton { "REC" };
     juce::ComboBox baseCombo, scaleCombo, stepsCombo, clockCombo, syncCombo, gateDivCombo, satTypeCombo, analogModeCombo,
                    filterTypeCombo, skinCombo, fxDivCombo;
     LogoButton logoButton;

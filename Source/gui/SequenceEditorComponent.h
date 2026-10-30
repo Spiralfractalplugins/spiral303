@@ -88,6 +88,21 @@ public:
             }
         }
 
+        // The record cursor: while the serial entry is armed the column it will
+        // write into glows from below, distinct from the running playhead.
+        if (processor.isRecording())
+        {
+            const int cursor = processor.recordCursorStep();
+            if (cursor >= 0 && cursor < steps)
+            {
+                const float x = grid.getX() + static_cast<float> (cursor) * stepW;
+                g.setColour (th.accentAlt.withAlpha (0.16f));
+                g.fillRect (x, grid.getY(), stepW, grid.getHeight());
+                g.setColour (th.accentAlt);
+                g.fillRect (x, grid.getBottom() - 3.0f * uiScale, stepW, 2.5f * uiScale);
+            }
+        }
+
         // pitch rows
         for (int r = 0; r < kNumPitchRows; ++r)
         {

@@ -39,7 +39,7 @@ namespace
         p->prepareToPlay (48000.0, 512);
         if (auto* sync = dynamic_cast<AudioParameterChoice*> (
                 p->state().getParameter (ParamIDs::syncMode)))
-            sync->setValueNotifyingHost (1.0f);
+            sync->setValueNotifyingHost (1.0f / static_cast<float> (sync->getAllValueStrings().size() - 1));
         if (auto* play = dynamic_cast<AudioParameterBool*> (
                 p->state().getParameter (ParamIDs::manualPlay)))
             play->setValueNotifyingHost (1.0f);
@@ -71,7 +71,7 @@ namespace
         // WebAssembly build runs its own clock. The comparison uses the same
         // mode on both sides.
         if (auto* sync = dynamic_cast<AudioParameterChoice*> (p->state().getParameter (ParamIDs::syncMode)))
-            sync->setValueNotifyingHost (1.0f);
+            sync->setValueNotifyingHost (1.0f / static_cast<float> (sync->getAllValueStrings().size() - 1));
 
         const int frames = 512;
         const int blocks = 192;   // two seconds
@@ -2090,6 +2090,310 @@ static void runTests()
                 if (midi.getNumEvents() != 0) break;
             }
             q->releaseResources();
+        }
+
+        p->releaseResources();
+    }
+
+    // 30. MIDI Clock sync and the Note Trigger start: an external 24-PPQ clock
+    //     drives the line's tempo (the run starts on its Start, steps run at the
+    //     measured clock tempo) and a note-on while stopped raises the run line
+    //     when Start mode = Note Trigger (and only then).
+    {
+        struct Event
+        {
+            int time = 0;      // absolute sample within the collection window
+            bool on = false;
+            int note = 0;
+        };
+
+        AudioBuffer<float> buf (2, 512);
+        auto drain = [&buf] (PluginProcessor& p, int block, MidiBuffer& midi)
+        {
+            buf.clear();
+            p.processBlock (buf, midi);
+            std::vector<Event> events;
+            const int base = block * 512;
+            for (const auto& md : midi)
+            {
+                Event e;
+                e.time = base + md.samplePosition;
+                e.on = md.getMessage().isNoteOn();
+                e.note = md.getMessage().getNoteNumber();
+                events.push_back (e);
+            }
+            return events;
+        };
+
+        Sequence line;
+        line.setNumSteps (2);
+        line.scaleIndex = 0; line.baseMidi = 36; line.clearAll();
+        line.setNote (0, 0);          // one C2 every second step
+
+        // ── A: the external clock drives the tempo ──────────────────────────
+        auto p = std::make_unique<PluginProcessor>();
+        p->setRateAndBufferSizeDetails (48000.0, 512);
+        p->prepareToPlay (48000.0, 512);
+        if (auto* sync = dynamic_cast<AudioParameterChoice*> (
+                p->state().getParameter (ParamIDs::syncMode)))
+            sync->setValueNotifyingHost (1.0f);       // index 2 = Midi Clock
+        if (auto* play = dynamic_cast<AudioParameterBool*> (
+                p->state().getParameter (ParamIDs::manualPlay)))
+            play->setValueNotifyingHost (0.0f);       // the knob's PLAY says no:
+                                                      // the clock must start it anyway
+        p->setSequence (line);
+
+        std::vector<Event> stream;
+        {
+            // A 120 BPM clock: 24 ticks per beat at 1000 samples' spacing, so
+            // a 1/16 step runs at 6000 samples. Start at sample 0, ticks from
+            // there, Stop before the run ends.
+            const double tickInterval = 48000.0 * 60.0 / 120.0 / 24.0;   // 1000.0
+            const int blocks = 720;   // ~7.7 s
+            int nextTick = 0;
+            int stoppedAt = -1;
+            for (int block = 0; block < blocks; ++block)
+            {
+                MidiBuffer midi;
+                const int base = block * 512, end = base + 512;
+                const double stopSample = 360000.0;    // 7.5 s in
+                if (block == 0)
+                    midi.addEvent (juce::MidiMessage::midiStart(), 0);
+                // The ticks that fall inside this block (sample 0 belongs to the Start).
+                while (stoppedAt < 0
+                       && std::llround (static_cast<double> (nextTick) * tickInterval) < end)
+                {
+                    const long long at = std::llround (static_cast<double> (nextTick) * tickInterval);
+                    if (at >= static_cast<long long> (base) && at > 0)
+                    {
+                        if (static_cast<double> (at) >= stopSample)
+                            midi.addEvent (juce::MidiMessage::midiStop(), static_cast<int> (at - base));
+                        else
+                            midi.addEvent (juce::MidiMessage::midiClock(), static_cast<int> (at - base));
+                    }
+                    if (static_cast<double> (at) >= stopSample)
+                        stoppedAt = block;
+                    else
+                        ++nextTick;
+                }
+                auto events = drain (*p, block, midi);
+                if (stoppedAt < 0)
+                    stream.insert (stream.end(), events.begin(), events.end());
+            }
+            check (stoppedAt >= 0, "the injected clock reaches its Stop");
+        }
+
+        check (static_cast<int> (stream.size()) >= 4,
+               "an external clock starts the line and steps it ("
+               + String (static_cast<int> (stream.size())) + " MIDI events)");
+
+        // A plain note is one step long: the gaps between note ons read the
+        // tempo the clock actually ran at - every second boundary here, so
+        // 12000 samples.
+        std::vector<int> onTimes;
+        for (const auto& e : stream)
+            if (e.on)
+                onTimes.push_back (e.time);
+        check (static_cast<int> (onTimes.size()) >= 3,
+               "the clocked line fires notes repeatedly (" + String (onTimes.size()) + ")");
+
+        // The pattern runs its four-step minimum (note, three rests): the ons
+        // read the tempo the clock actually ran at, four whole steps apart -
+        // 24000 samples of a 1/16 grid at the clock's measured 120 BPM.
+        int evenGaps = 0, gaps = 0;
+        for (size_t i = 2; i < onTimes.size(); ++i)   // skip the tempo's settling steps
+        {
+            const int gap = onTimes[i] - onTimes[i - 1];
+            ++gaps;
+            evenGaps += std::fabs (static_cast<double> (gap) - 24000.0) <= 128.0 ? 1 : 0;
+        }
+        check (gaps > 0 && evenGaps == gaps,
+               "the measured clock tempo lands on the step grid (" + String (evenGaps)
+               + " of " + String (gaps) + " gaps at 24000 samples)");
+
+        p->releaseResources();
+
+        // ── B: the note trigger, on and off ─────────────────────────────────
+        auto triggered = [line] (bool modeOn)
+        {
+            auto q = std::make_unique<PluginProcessor>();
+            q->setRateAndBufferSizeDetails (48000.0, 512);
+            q->prepareToPlay (48000.0, 512);
+            if (auto* sync = dynamic_cast<AudioParameterChoice*> (
+                    q->state().getParameter (ParamIDs::syncMode)))
+                sync->setValueNotifyingHost (0.5f);       // Manual
+            if (auto* play = dynamic_cast<AudioParameterBool*> (
+                    q->state().getParameter (ParamIDs::manualPlay)))
+                play->setValueNotifyingHost (0.0f);       // stopped, on purpose
+            if (auto* start = dynamic_cast<AudioParameterChoice*> (
+                    q->state().getParameter (ParamIDs::startMode)))
+                start->setValueNotifyingHost (modeOn ? 1.0f : 0.0f);
+            q->setSequence (line);
+            return q;
+        };
+
+        auto stepsSeen = [] (PluginProcessor& q)
+        {
+            int seen = 0;
+            for (int b = 0; b < 600 && seen < 1; ++b)   // ~6 s: two pattern loops at most
+            {
+                AudioBuffer<float> bufb (2, 512);
+                bufb.clear();
+                MidiBuffer midi;
+                if (b == 2)   // one note, once, at sample 0 of the third block
+                {
+                    midi.addEvent (juce::MidiMessage::noteOn (1, 45, 0.8f), 0);
+                    midi.addEvent (juce::MidiMessage::noteOff (1, 45), 100);
+                }
+                q.processBlock (bufb, midi);
+                if (q.getPlayingStep() >= 0)
+                    ++seen;
+            }
+            return seen;
+        };
+
+        check (stepsSeen (*triggered (true)) > 0,
+               "Start = Note Trigger raises the run line on the first note");
+        check (stepsSeen (*triggered (false)) == 0,
+               "Start = Transport leaves the line down until the transport says otherwise");
+    }
+
+    // 31. Serial step entry (REC): notes played while armed land in the pattern
+    //     one by one at the record cursor, snapped into the grid's scale, with
+    //     the accent in the velocity band, a held-second-note legato as a slide,
+    //     a sustain tap as a rest, and the wrap at the pattern's end.
+    {
+        auto p = std::make_unique<PluginProcessor>();
+        p->setRateAndBufferSizeDetails (48000.0, 512);
+        p->prepareToPlay (48000.0, 512);
+
+        Sequence pattern;
+        pattern.setNumSteps (8);
+        pattern.scaleIndex = 0;   // chromatic: the degree is the semitone above the base
+        pattern.baseMidi = 36;
+        pattern.clearAll();
+        p->setSequence (pattern);
+        p->setRecording (true);
+        check (p->recordCursorStep() == 0, "the record cursor starts at step 0 when stopped");
+
+        AudioBuffer<float> buf (2, 512);
+        auto record = [&] (juce::MidiBuffer& events)
+        {
+            buf.clear();
+            p->processBlock (buf, events);
+            p->drainRecordQueue();
+            return p->getSequence();
+        };
+
+        // A plain note.
+        {
+            MidiBuffer mb;
+            mb.addEvent (juce::MidiMessage::noteOn (1, 36, 0.5f), 0);
+            const auto seq = record (mb);
+            check (seq.isNote (0) && seq.degree (0) == 0,
+                   "a played note lands in the cursor's cell at its scale degree");
+            check (p->recordCursorStep() == 1, "the cursor advanced past the recorded note");
+        }
+
+        // Playing over a cell keeps the flags it already had; the pitch folds
+        // into the rows the editor shows.
+        {
+            Sequence seq = p->getSequence();
+            seq.setNote (1, 7);
+            seq.toggleSlide (1);
+            seq.toggleAccent (1);
+            p->setSequence (seq);
+
+            MidiBuffer mb;
+            mb.addEvent (juce::MidiMessage::noteOn (1, 72, 0.5f), 0);   // +5 octaves: folds to the top row
+            const auto after = record (mb);
+            check (after.isNote (1) && after.degree (1) == 13,
+                   "a played note outside the rows folds into the grid ("
+                   + String (after.degree (1)) + ")");
+            check (after.hasSlide (1) && after.hasAccent (1),
+                   "playing over a step keeps its slide and accent marks");
+            check (p->recordCursorStep() == 2, "the cursor still advanced past the kept-flags step");
+        }
+
+        // The accent rides the velocity band the .mid export writes.
+        {
+            MidiBuffer mb;
+            mb.addEvent (juce::MidiMessage::noteOn (1, 39, 1.0f), 0);
+            const auto after = record (mb);
+            check (after.isNote (2) && after.hasAccent (2) && after.velocityOf (2) > 0.99f,
+                   "a hard-pressed note records with the accent and full velocity");
+            check (p->recordCursorStep() == 3, "the cursor moved past the accented note");
+        }
+
+        // A second note while the first is still held makes the step slide.
+        {
+            MidiBuffer mb;
+            mb.addEvent (juce::MidiMessage::noteOn (1, 38, 0.5f), 0);
+            mb.addEvent (juce::MidiMessage::noteOn (1, 44, 0.5f), 100);
+            const auto after = record (mb);
+            check (after.isNote (3) && after.degree (3) == 2,
+                   "the first note of a legato pair lands in its own cell");
+            check (after.isNote (4) && after.hasSlide (4) && after.degree (4) == 8,
+                   "the second held note records with the slide mark");
+            check (p->recordCursorStep() == 5, "the cursor walked the legato pair");
+        }
+
+        // A sustain-pedal tap is a rest.
+        {
+            MidiBuffer mb;
+            mb.addEvent (juce::MidiMessage::controllerEvent (1, 64, 127), 0);
+            const auto after = record (mb);
+            check (after.isRest (5), "a pedal tap records a rest");
+            check (p->recordCursorStep() == 6, "the cursor advanced past the rest");
+        }
+
+        // The legato context ends with the note-off: a new attack is its own.
+        {
+            MidiBuffer mb;
+            mb.addEvent (juce::MidiMessage::noteOn (1, 48, 0.5f), 0);
+            mb.addEvent (juce::MidiMessage::noteOff (1, 48), 50);
+            mb.addEvent (juce::MidiMessage::noteOn (1, 48, 0.5f), 100);
+            const auto after = record (mb);
+            check (after.isNote (6) && after.degree (6) == 12,
+                   "the re-pressed note after a release lands in its own cell");
+            check (after.isNote (7) && ! after.hasSlide (7),
+                   "a note after a released note does not read as a slide");
+            check (p->recordCursorStep() == 0, "a full pattern in one pass wraps the cursor home");
+        }
+
+        // REC off: the pattern stands still.
+        {
+            p->setRecording (false);
+            check (p->recordCursorStep() == -1, "a disarmed cursor reads none");
+
+            Sequence before = p->getSequence();
+            MidiBuffer mb;
+            mb.addEvent (juce::MidiMessage::noteOn (1, 41, 0.9f), 0);
+            const auto after = record (mb);
+            check (after.steps == before.steps, "a disarmed record leaves the pattern alone");
+        }
+
+        // While the line is running the cursor starts where the line is.
+        {
+            p->setSequence (pattern);
+            if (auto* sync = dynamic_cast<AudioParameterChoice*> (
+                    p->state().getParameter (ParamIDs::syncMode)))
+                sync->setValueNotifyingHost (1.0f / static_cast<float> (sync->getAllValueStrings().size() - 1));
+            if (auto* play = dynamic_cast<AudioParameterBool*> (
+                    p->state().getParameter (ParamIDs::manualPlay)))
+                play->setValueNotifyingHost (1.0f);
+            for (int b = 0; b < 10; ++b)
+            {
+                buf.clear();
+                MidiBuffer mb;
+                p->processBlock (buf, mb);
+            }
+            const int playing = p->getPlayingStep();
+            check (playing >= 0, "the line is running for the REC start check");
+            p->setRecording (true);
+            check (p->recordCursorStep() == playing,
+                   "the record cursor starts at the step being played ("
+                   + String (p->recordCursorStep()) + " vs " + String (playing) + ")");
         }
 
         p->releaseResources();

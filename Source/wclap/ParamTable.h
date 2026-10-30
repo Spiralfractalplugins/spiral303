@@ -53,6 +53,7 @@ namespace spiral303
         kFxRevDecay,
         kOversample,
         kUiSkin,
+        kStartMode,
         kParamCount
     };
 

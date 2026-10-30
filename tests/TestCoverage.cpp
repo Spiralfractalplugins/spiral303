@@ -340,7 +340,7 @@ void runCoverageTests (const std::function <void (bool, const String&)>& check)
 
     {
         PluginProcessor p;
-        check (p.getParameters().size() >= 20 && p.getParameters().size() <= 41,
+        check (p.getParameters().size() >= 20 && p.getParameters().size() <= 43,
                "the parameter count is sane (limiter params included) ("
                + String (p.getParameters().size()) + ")");
         check (p.findFloatParam (ParamIDs::cutoff) != nullptr, "cutoff is found by id");
@@ -406,7 +406,8 @@ void runCoverageTests (const std::function <void (bool, const String&)>& check)
         pump();
         check (! p.isSequencerRunning(), "host sync without a play head stands still");
         auto* sync = dynamic_cast<AudioParameterChoice*> (p.state().getParameter (ParamIDs::syncMode));
-        sync->setValueNotifyingHost (1.0f);
+        // Manual, whichever way the choice list has grown: half of its travel.
+        sync->setValueNotifyingHost (1.0f / static_cast<float> (sync->getAllValueStrings().size() - 1));
         pump();
         check (p.isSequencerRunning(), "manual mode runs with no host");
         auto* play = dynamic_cast<AudioParameterBool*> (p.state().getParameter (ParamIDs::manualPlay));

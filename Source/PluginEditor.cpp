@@ -183,6 +183,17 @@ PluginEditor::PluginEditor (PluginProcessor& p)
 
     exportButton.onClick = [this] { exportWav(); };
 
+    // REC: serial step entry. Notes played while it is armed land in the
+    // pattern one at a time at the record cursor (the audio thread captures
+    // them, the editor's tick writes them into the grid).
+    recButton.setClickingTogglesState (true);
+    recButton.setTooltip ("REC = serial step entry: the cursor highlights the step\n"
+                          "being written; played notes land there one by one and the\n"
+                          "cursor advances around the pattern. Velocity 100+ records\n"
+                          "with the accent, a second held note makes the step slide,\n"
+                          "a sustain-pedal tap (CC64) records a rest.");
+    recButton.onClick = [this] { processor.setRecording (recButton.getToggleState()); };
+
     randomButton.onClick = [this]
     {
         applyToSequence ([] (Sequence& s) { s.randomise (static_cast<int> (Time::getMillisecondCounter())); });
@@ -231,12 +242,14 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     };
 
     clockCombo.setTooltip ("How fast the pattern steps run against the beat.");
-    syncCombo.setTooltip ("Host follows the transport and tempo; Manual uses the BPM knob and PLAY.");
+    syncCombo.setTooltip ("Host follows the transport and tempo; Manual uses the BPM knob and PLAY;\n"
+                          "Midi Clock follows external Start/Stop and the 24-PPQ clock.");
     gateDivCombo.setTooltip ("How long the gate wheel dwells on each sector.");
     for (int i = 0; i < kClockDivisionNames.size(); ++i)
         clockCombo.addItem (kClockDivisionNames[i], i + 1);
     syncCombo.addItem ("Host", 1);
     syncCombo.addItem ("Manual", 2);
+    syncCombo.addItem ("Midi Clock", 3);
     static const StringArray kGateDivNames { "16th", "8th", "32nd", "16T" };
     for (int i = 0; i < kGateDivNames.size(); ++i)
         gateDivCombo.addItem (kGateDivNames[i], i + 1);
@@ -302,6 +315,7 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     addAndMakeVisible (randomButton);
     addAndMakeVisible (midiButton);
     addAndMakeVisible (clearButton);
+    addAndMakeVisible (recButton);
     addAndMakeVisible (gateOnButton);
     addAndMakeVisible (analogOnButton);
     addAndMakeVisible (hissButton);
@@ -1067,6 +1081,10 @@ void PluginEditor::endPresetNoteEdit()
 
 void PluginEditor::timerCallback()
 {
+    // The serial entry writes into the pattern here: the audio thread's capture
+    // becomes grid cells on this tick, before anything reads a stale picture.
+    processor.drainRecordQueue();
+
     // The skin can change from anywhere — the combo box, a preset load, a host
     // state recall — so it is polled like the other out-of-band state.
     if (auto* pSkin = dynamic_cast<AudioParameterChoice*> (processor.state().getParameter (ParamIDs::uiSkin)))
@@ -1342,6 +1360,9 @@ void PluginEditor::resized()
     gateOnButton.setBounds (scaled ({ 1108, 58, 52, 22 }));
 
     seqEditor.setBounds (scaled ({ 16, 508, 1148, 260 }));
+    // REC sits over the grid panel's top strip, right of the BASE caption line:
+    // the serial entry's switch lives where it writes.
+    recButton.setBounds (scaled ({ 1080, 520, 66, 18 }));
     // The scopes stand a little shorter than they used to: the freed 24 px
     // carry the FX strip below them, inside the same panel.
     waveScope.setBounds (scaled ({ 452, 268, 202, 100 }));

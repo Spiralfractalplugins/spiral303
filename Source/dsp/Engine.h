@@ -639,7 +639,9 @@ private:
             const auto msg = metadata.getMessage();
             if (msg.isNoteOn())
             {
-                if (running)
+                // While the serial entry (REC) is armed the played notes go into
+                // the pattern instead: the running line keeps its base note.
+                if (running && ! patch.recording)
                     baseNoteShift = msg.getNoteNumber() - defaultBaseNote;
                 else if (liveCount < kMaxLiveNotes)
                 {

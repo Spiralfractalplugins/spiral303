@@ -21,7 +21,7 @@ namespace
         p->setRateAndBufferSizeDetails (sr, block);
         p->prepareToPlay (sr, block);
         if (auto* sync = dynamic_cast<AudioParameterChoice*> (p->state().getParameter (ParamIDs::syncMode)))
-            sync->setValueNotifyingHost (1.0f);
+            sync->setValueNotifyingHost (1.0f / static_cast<float> (sync->getAllValueStrings().size() - 1));
         if (auto* play = dynamic_cast<AudioParameterBool*> (p->state().getParameter (ParamIDs::manualPlay)))
             play->setValueNotifyingHost (1.0f);
         return p;

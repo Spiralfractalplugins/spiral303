@@ -7,7 +7,7 @@ namespace spiral303
     namespace
     {
         const char* const kClockChoices[] = { "1/4", "1/4T", "1/8", "1/8T", "1/16", "1/16T" };
-        const char* const kSyncChoices[] = { "Host", "Manual" };
+        const char* const kSyncChoices[] = { "Host", "Manual", "Midi Clock" };
         const char* const kGateDivChoices[] = { "16th", "8th", "32nd", "16T" };
         const char* const kSatTypeChoices[] =
         {
@@ -22,6 +22,7 @@ namespace spiral303
         };
         const char* const kMidiMapChoices[] = { "Off", "Launch Control", "Launch Control XL", "Push 2" };
         const char* const kSkinChoices[] = { "Dark", "Console", "Wood", "Metal" };
+        const char* const kStartModeChoices[] = { "Transport", "Note Trigger" };
         const char* const kDelayDivChoices[] = { "1/4", "1/8", "1/8.", "1/16", "1/8T" };
         const char* const kOversampleChoices[] = { "OS Off", "OS 2x", "OS 4x" };
 
@@ -43,7 +44,7 @@ namespace spiral303
             { "Swing",        "Swing",              "",     0.0,    0.6,    0.0,   false, false, 2, nullptr, 0 },
             { "BPM",          "Tempo",              " BPM", 20.0,   400.0,  130.0, false, false, 1, nullptr, 0 },
             { "ClockDiv",     "Clock",              "",     0.0,    5.0,    4.0,   true,  false, 0, kClockChoices, 6 },
-            { "Sync",         "Sync",               "",     0.0,    1.0,    0.0,   true,  false, 0, kSyncChoices, 2 },
+            { "Sync",         "Sync",               "",     0.0,    2.0,    0.0,   true,  false, 0, kSyncChoices, 3 },
             { "GateDiv",      "Gate Div",           "",     0.0,    3.0,    0.0,   true,  false, 0, kGateDivChoices, 4 },
             { "GateOn",       "Gate On",            "",     0.0,    1.0,    0.0,   false, true,  0, nullptr, 0 },
             { "Play",         "Manual Play",        "",     0.0,    1.0,    1.0,   false, true,  0, nullptr, 0 },
@@ -71,7 +72,8 @@ namespace spiral303
             { "FxRevMix",     "Reverb Mix",         "",     0.0,    1.0,    0.0,   false, false, 2, nullptr, 0 },
             { "FxRevDecay",   "Reverb Decay",       "",     0.0,    1.0,    0.5,   false, false, 2, nullptr, 0 },
             { "Oversample",   "Oversample",         "",     0.0,    2.0,    0.0,   true,  false, 0, kOversampleChoices, 3 },
-            { "UiSkin",       "Skin",               "",     0.0,    3.0,    0.0,   true,  false, 0, kSkinChoices, 4 }
+            { "UiSkin",       "Skin",               "",     0.0,    3.0,    0.0,   true,  false, 0, kSkinChoices, 4 },
+            { "Start",        "Start Mode",         "",     0.0,    1.0,    0.0,   true,  false, 0, kStartModeChoices, 2 }
         };
 
         uint32_t hashId (const char* text)

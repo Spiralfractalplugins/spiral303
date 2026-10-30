@@ -368,7 +368,7 @@ namespace juce
     class MidiMessage
     {
     public:
-        enum class Type { NoteOn, NoteOff, Controller };
+        enum class Type { NoteOn, NoteOff, Controller, Realtime };
 
         MidiMessage() = default;
 
@@ -417,9 +417,25 @@ namespace juce
             return m;
         }
 
+        /** A system realtime byte (0xf8 etc.): the clock's Start/Continue/Stop
+            and clock messages ride the same buffer as notes. The full status
+            byte is kept, so the receiver can tell the four apart. */
+        static MidiMessage realtimeStatus (uint8 statusByte)
+        {
+            MidiMessage m;
+            m.type = Type::Realtime;
+            m.statusByte = statusByte;
+            return m;
+        }
+
         bool isNoteOn() const noexcept { return type == Type::NoteOn && velocity != 0; }
         bool isNoteOff() const noexcept { return type == Type::NoteOff || (type == Type::NoteOn && velocity == 0); }
         bool isController() const noexcept { return type == Type::Controller; }
+        bool isRealtime() const noexcept { return type == Type::Realtime; }
+        bool isMidiStart() const noexcept { return type == Type::Realtime && statusByte == 0xfa; }
+        bool isMidiContinue() const noexcept { return type == Type::Realtime && statusByte == 0xfb; }
+        bool isMidiStop() const noexcept { return type == Type::Realtime && statusByte == 0xfc; }
+        bool isMidiClock() const noexcept { return type == Type::Realtime && statusByte == 0xf8; }
 
         int getNoteNumber() const noexcept { return noteNumber; }
         /** JUCE 8 returns the velocity as a 0..127 byte. */
@@ -433,6 +449,7 @@ namespace juce
         int channel = 1;
         int noteNumber = 0;
         uint8 velocity = 0;
+        uint8 statusByte = 0;
         int controllerNumber = 0;
         int controllerValue = 0;
     };

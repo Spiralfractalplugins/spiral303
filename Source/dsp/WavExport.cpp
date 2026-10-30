@@ -20,7 +20,8 @@ bool WavExport::renderPattern (PluginProcessor& source, const File& file, int nu
 
     if (auto* sync = dynamic_cast<AudioParameterChoice*> (
             target.state().getParameter (ParamIDs::syncMode)))
-        sync->setValueNotifyingHost (1.0f); // Manual
+        // Manual, whatever the choice's current size is.
+        sync->setValueNotifyingHost (1.0f / static_cast<float> (sync->getAllValueStrings().size() - 1));
     if (auto* play = dynamic_cast<AudioParameterBool*> (
             target.state().getParameter (ParamIDs::manualPlay)))
         play->setValueNotifyingHost (1.0f);

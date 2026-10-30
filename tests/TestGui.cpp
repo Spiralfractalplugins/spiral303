@@ -942,7 +942,7 @@ void runGuiTests (const std::function <void (bool, const String&)>& check)
                 p->prepareToPlay (48000.0, 512);
                 if (auto* sync = dynamic_cast<AudioParameterChoice*> (
                         p->state().getParameter (ParamIDs::syncMode)))
-                    sync->setValueNotifyingHost (1.0f);
+                    sync->setValueNotifyingHost (1.0f / static_cast<float> (sync->getAllValueStrings().size() - 1));
                 if (auto* play = dynamic_cast<AudioParameterBool*> (
                         p->state().getParameter (ParamIDs::manualPlay)))
                     play->setValueNotifyingHost (1.0f);
@@ -970,10 +970,11 @@ void runGuiTests (const std::function <void (bool, const String&)>& check)
                      && std::equal (plain.begin(), plain.end(), walnut.begin()),
                    "no skin changes a single audio sample");
 
-            // AUv2 numbers parameters by position, so a new one must stay last.
+            // AUv2 numbers parameters by position, so nothing above Start Mode
+            // (the appended-last one) may shift: appending alone is index-stable.
             auto p = makeGuiProcessor();
             const String last = p->getParameters().getLast()->getName (64);
-            check (last == "Skin", "UiSkin is the appended-last parameter (" + last + ")");
+            check (last == "Start Mode", "Start Mode is the appended-last parameter (" + last + ")");
             Skins::select (0);
         }
 

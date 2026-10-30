@@ -41,6 +41,11 @@ struct Patch
     float gateMix = 1.0f;                   // dry/wet of the gate effect (0 = bypassed)
     float hiss = 0.0f;                      // analog noise floor strength (0 = off)
 
+    /** Record mode (serial step entry) is armed: played notes are captured for
+        the pattern instead of transposing the running line (the base note's
+        shift). The audio thread reads this, the message thread writes it. */
+    bool recording = false;
+
     // FX tail (delay, then the reverb). Zero mixes = bypass; the processors skip
     // the whole stage then, so every calibrated render of the bank stays bit-exact.
     float fxDelMix = 0.0f;                  // delay dry/wet (0 = bypass)

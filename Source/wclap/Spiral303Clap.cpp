@@ -616,6 +616,11 @@ namespace spiral303
                         else if (status == 0x80 || (status == 0x90 && raw->data[2] == 0))
                             midi.addEvent (juce::MidiMessage::noteOff (channel, raw->data[1]),
                                            static_cast<int> (raw->header.time));
+                        else if (status == 0xf0 && raw->data[0] >= 0xf8u)
+                            // System realtime: the clock's Start/Continue/Stop and
+                            // the 24-PPQ ticks, for Sync = Midi Clock.
+                            midi.addEvent (juce::MidiMessage::realtimeStatus (raw->data[0]),
+                                           static_cast<int> (raw->header.time));
                         break;
                     }
 

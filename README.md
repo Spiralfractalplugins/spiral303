@@ -70,7 +70,10 @@ from the [plinken shelf](https://plinken.org/shelf.json); see
   makeup-gain table, and an ~8 ms crossfade when you change type.
 - **303 sequencer**: 4 – 32 steps, 12 scales, tie / slide / accent per step,
   chained accents that charge each other up to +75% like the accent capacitor in
-  a real 303, swing and glide.
+  a real 303, swing and glide. A REC switch runs serial step entry: notes you
+  play land in the grid one by one at the glowing record cursor, snapped to the
+  scale — velocity 100+ records the accent, a second held note makes the step
+  slide, a sustain-pedal tap (CC64) records a rest.
 - **Gate wheel**: a 4×4 grid where each cell is a 16th note; closed cells mute the
   gate layer, rotating the pattern shifts it by a step, with its own attack,
   release, level and clock division (16th / 8th / 32nd / 16T).
@@ -266,7 +269,7 @@ appended). Values are the engineering units the UI shows.
 | `Swing` | float | 0 – 0.6 (fraction of a step) | 0.0 |
 | `BPM` | float | 20 – 400 BPM (log) | 130 BPM |
 | `ClockDiv` | choice | 1/4 / 1/4T / 1/8 / 1/8T / 1/16 / 1/16T | 4 (1/16) |
-| `Sync` | choice | Host / Manual | 0 (Host) |
+| `Sync` | choice | Host / Manual / Midi Clock | 0 (Host) |
 | `GateDiv` | choice | 16th / 8th / 32nd / 16T | 0 (16th) |
 | `GateOn` | bool | — | false |
 | `Play` | bool | — | true |
@@ -293,6 +296,7 @@ appended). Values are the engineering units the UI shows.
 | `FxRevDecay` | float | 0 – 1 (comb gain 0.21 – 0.70) | 0.5 |
 | `Oversample` | choice | OS Off / OS 2x / OS 4x | 0 (OS Off) |
 | `UiSkin` | choice | Dark / Console / Wood / Metal (UI only) | 0 (Dark) |
+| `Start` | choice | Transport / Note Trigger (reachable through the host's automation panel) | 0 (Transport) |
 
 Parameters live in an `AudioProcessorValueTreeState`, so host automation and state
 save/restore work in every format; the wasm build exposes the same IDs. The

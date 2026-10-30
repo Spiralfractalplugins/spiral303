@@ -17,6 +17,7 @@
 #include "../dsp/Sequence.h"
 #include "../dsp/Delay.h"
 #include "../dsp/Reverb.h"
+#include "../dsp/MidiClockTransport.h"
 
 namespace spiral303
 {
@@ -107,6 +108,11 @@ namespace spiral303
         void updateTransport (bool& running, double& bpm, double& beatPosition,
                               const HostTransport* transport);
         void syncCustomStateAudioThread();
+
+        /** The MIDI clock status and the note trigger, the scanner of the
+            incoming stream running before the transport decides this block's
+            run line - the same tracker the native processor runs. */
+        MidiClockTransport midiClock;
 
         mutable std::mutex paramLock;
         float values[kParamCount] {};
